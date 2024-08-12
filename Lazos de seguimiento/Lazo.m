@@ -1,6 +1,6 @@
 % Lazo completo -----------------------------------------------------------
 
-clear all;clc;close all
+clear all;clc;close all hola como va 
 
 %--------------------------------------------------------------------------
 %%                      Generación de señal sintética 
