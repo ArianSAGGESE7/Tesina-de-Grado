@@ -48,7 +48,7 @@ s1 = cdata.*cs.*exp(1j*(2*pi*(fL1)*(Ts*n-taut))); % Señal modulada a fL1
 s2 = s1.*exp(-1j*(2*pi*fOL*Ts*n)); % Demodulación a frecuencia intermedia
 %--------------------------------------------------------------------------
 %               Generación de ruido para mejorar el modelo 
-CN0db = 20; % Relacion señal a ruido en DB
+CN0db = 100; % Relacion señal a ruido en DB
 CN0 = 10^(.1*CN0db);
 N = 1/(Ts*CN0);
 % El ruido se genera a partir de una distribución complex normal
@@ -401,7 +401,7 @@ for k=0:MS-1
 
     taux=taux-K0*delta_tau+FC_ASIST*out_p2/1540;  %Variable de estado del lazo de código y asistencia (realimentación)
     %del lazo de portadora
-    s=exp(1j*(2*pi*(fFI+FREQ_LOOP*fdop)*Ts*nt+FREQ_LOOP*fi_e)); %Ajuste de réplica de portadora
+    s=exp(1j*(2*pi*(fFI+FREQ_LOOP*fdop)*Ts*nt+FREQ_LOOP*out_p2)); %Ajuste de réplica de portadora
     c=cx(mod(floor((nt*Ts-CODE_LOOP*taux*Tchip)/Tchip),1023)+1); %Ajuste de réplica de código
 
     x_seg(k+1,1)=taux*Tchip*3e8; %Estimación de pseudorango
