@@ -339,7 +339,6 @@ for k=1:length(P_VD)
     end
 end
 %%                            Tracking v2
-MOM_TRAN =3E-3;
 % Obtenemos la frecuencia y el retardo refinado, implementamos el lazo de seguimiento en base 
 % a los 3 integradores discretos y con eso regeneramos las replicas
 
@@ -375,9 +374,8 @@ s=exp(1j*(2*pi*fx*nt*Ts)); %Réplica de portadora inicial
 
 
 %Inicio de trackeo
-for k=0:MS-1
-    zseg=z(M*k+MOM_TRAN/Ts:M*(k+1)+MOM_TRAN/Ts-1); %Selección de slot
-
+for k=0:MS/2-1
+    zseg=z(floor(MOM_TRAN/Ts)+k*floor(20e-3/Ts):M+floor(MOM_TRAN/Ts-1)+(k)*floor(20e-3/Ts)); %Selección de slot
     %Lazo de portadora:
     P=sum(conj(c.*s).*zseg); %Correlación prompt
     IPS=real(P); % Parte real
@@ -408,18 +406,25 @@ for k=0:MS-1
 
 end
 
+close all; clc
+figure(1)
+hold on
+%Potencias de correlación
+plot((0:length(pP)-1)*MS*Ti,abs(pP),'linewidth',1); grid on; hold on;
+plot((0:length(pE)-1)*MS*Ti,abs(pE),'linewidth',1); hold on
+plot((0:length(pL)-1)*MS*Ti,abs(pL),'linewidth',1); 
 
-
-
-
-
-
-
-
-
-
-
-
+title(['Potencias P-E-L - SV',num2str(NUMERO_DE_SATELITE)],'Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
+ylabel('Potencia [-]','Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
+xlabel('Tiempo [ms]','Fontsize',14,'FontAngle','italic','Interpreter','Latex');
+legend('P','E','L')
+figure(2)
+%I y Q de potencia prompt
+ plot(1:10:10*length(pP),abs(real(pP)),'linewidth',1); grid on; hold on
+plot(1:10:10*length(pP),imag(pP),'linewidth',1);
+title(['Potencias I-Q Prompt - SV',num2str(NUMERO_DE_SATELITE)],'Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
+ylabel('Potencia [-]','Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
+xlabel('Tiempo [ms]','Fontsize',14,'FontAngle','italic','Interpreter','Latex');
 
 %----------------------------------------------------------------------------------------
 %%                             Tracking
@@ -427,7 +432,7 @@ end
 
 fx=fx_fino; % Frecuencia (Estimación inicial)
 taux=taux_fino+(fx-fFI)/1540*MOM_TRAN; % Retardo (Estimación inicial)
-Ti = 5e-3; % Tomamos el tiempo de muestreo de 10 ms
+Ti = 10e-3; % Tomamos el tiempo de muestreo de 10 ms
 M = floor(Ti/Ts) ; % Lo que nos da una cantidad de muestras a procesar de 
 nt = 0:M-1; % Vecto de puntos que indican cuantas muestras son
 MS = floor((TD-MOM_TRAN)/Ti); % Cantidad de slots de seguimiento
@@ -452,8 +457,8 @@ s=exp(1j*(2*pi*fx*nt*Ts)); %Réplica de portadora inicial
 
 
 %Inicio de trackeo
-for k=0:MS-1
-    zseg=z(M*k+MOM_TRAN/Ts:M*(k+1)+MOM_TRAN/Ts-1); %Selección de slot
+for k=0:(MS-1)/2
+    zseg=z(floor(MOM_TRAN/Ts)+k*floor(20e-3/Ts):M+floor(MOM_TRAN/Ts-1)+(k)*floor(20e-3/Ts)); %Selección de slot
 
     %Lazo de portadora:
     P=sum(conj(c.*s).*zseg); %Correlación prompt

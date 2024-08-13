@@ -339,7 +339,6 @@ for k=1:length(P_VD)
     end
 end
 %%                            Tracking v2
-MOM_TRAN =3E-3;
 % Obtenemos la frecuencia y el retardo refinado, implementamos el lazo de seguimiento en base 
 % a los 3 integradores discretos y con eso regeneramos las replicas
 
@@ -376,8 +375,7 @@ s=exp(1j*(2*pi*fx*nt*Ts)); %Réplica de portadora inicial
 
 %Inicio de trackeo
 for k=0:MS-1
-    zseg=z(M*k+MOM_TRAN/Ts:M*(k+1)+MOM_TRAN/Ts-1); %Selección de slot
-
+    zseg=z(M+floor(MOM_TRAN/Ts)+k*floor(20e-3/Ts):M+floor(MOM_TRAN/Ts-1)+(k+1)*floor(20e-3/Ts)); %Selección de slot
     %Lazo de portadora:
     P=sum(conj(c.*s).*zseg); %Correlación prompt
     IPS=real(P); % Parte real
