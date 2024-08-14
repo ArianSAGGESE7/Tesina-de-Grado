@@ -62,6 +62,8 @@ ruido=nI+1i*nQ; %Ruido "Recibido"
 z = s2+ruido; 
 Densidad_espectral(z,fs); 
 
+
+
 %%                        Generación señal sintética RO
 clc;clear all
 NUMERO_DE_SATELITE = 1; % Adquisición del satélite 
