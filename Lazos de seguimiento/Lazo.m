@@ -48,7 +48,7 @@ s1 = cdata.*cs.*exp(1j*(2*pi*(fL1)*(Ts*n-taut))); % Señal modulada a fL1
 s2 = s1.*exp(-1j*(2*pi*fOL*Ts*n)); % Demodulación a frecuencia intermedia
 %--------------------------------------------------------------------------
 %               Generación de ruido para mejorar el modelo 
-CN0db = 100; % Relacion señal a ruido en DB
+CN0db = 48; % Relacion señal a ruido en DB
 CN0 = 10^(.1*CN0db);
 N = 1/(Ts*CN0);
 % El ruido se genera a partir de una distribución complex normal
@@ -62,76 +62,11 @@ ruido=nI+1i*nQ; %Ruido "Recibido"
 z = s2+ruido; 
 Densidad_espectral(z,fs); 
 
+%%                        Pérdida de potencia en el espacio libre
 
-
-%%                        Generación señal sintética RO
-clc;clear all
-NUMERO_DE_SATELITE = 1; % Adquisición del satélite 
-cx = cacode (NUMERO_DE_SATELITE); % Adquiero un período de 1023 chips para el satélite elegido
-fL1 = 1575.42e6; % Frecuencia nominal GPS
-fOL = 1575e6; % Frecuencia de oscilador local (no es necesariamente la misma)
-fFI = fL1-fOL; % Frecuencia intermedia
-Tchip = 1/(1023e3); % Tiempo de chip nominal 
-c = 3e8; % Velocidad de la luz
-lambda = c/fL1; % Longitud de onda nominal 
-fs = 5e6; % Frecuencia de muesteo predefinida
-Ts = 1/fs; % Tiempo de muestreo 
-fdata = 50; % Tasa de datos 
-Tdata = 1/fdata; %Periodo de bit de datos (20ms)
-CODE_LOOP          = 1; %Habilita lazo de código 
-FREQ_LOOP          = 1; %Habilita lazo de portadora 
-FC_ASIST           = 1; %Habilita asistencia e/ lazos 
-%--------------------------------------------------------------------------
-%                           Tiempo de simulación
-TD = 2; % Duración de datos (seg)
-n = 0:TD/Ts-1; % Indice de largo simulación
-%--------------------------------------------------------------------------
-%              Corrimiento por Doppler (consecuencia de retardos)
-doppler = 100;
-PEND = -doppler*lambda*Ts; % Como cambia el Doppler muestra a muestra
-% Suponemos que para el tiempo de señal que queremos adquirir el receptor
-% se mantiene cuasi estático con respecto al movimiento del satélite GPS
-x = 20000e3 + (1:length(n))*PEND; % Rango [en metros] con inicialización en 20 km
-% El fenómeno Doppler se traduce como un retardo temporal en las señales de
-% banda base y portadora, por lo tanto existe un retardo asociado
-taut  =x/c; % Tiempo asociado al pseudorango
-% Cada señal se vé afectada por un pseudorango
-cs = cx(mod(floor((n*Ts-taut)/Tchip),length(cx))+1);
-ndata=0:TD/Tdata-1; %Indice para datos
-data=sign(rand(1,length(ndata))-.5); % Datos generados de manera aleatoria
-cdata=data(mod(floor((n*Ts-taut)/Tdata),length(data))+1);% Datos desplazados
-% Con estás lineas de código literalmente se establece un retardo en el
-% muestreo de los datos y los chips, ya que existe un Doppler que genera un
-% efecto de shift en las muestras, aquí realizamos ese corrimiento
-
-% Generar señal sintetica en entornos de RADIO OCULTACIÓN-GNSS
-h = linspace(0,20000e3,length(x)); % Altitud por sobre la elipsoide
-for i=1:length(h)
-    n_h(i) = refractiveINDEX_onlyH(h(i));
+for i=length(z)/2:length(z)
+        z(i) = z(i)/(1+i/length(z));
 end
-
-phi_delay = (2 * pi * 1575.45e6/3e8).*trapz(h, n_h-1);
-
-%--------------------------------------------------------------------------
-%               Generación de la señal en envolvente compleja
-s1 = cdata.*cs.*exp(1j*(2*pi*(fL1)*(Ts*n-taut)+phi_delay)); % Señal modulada a fL1
-s2 = s1.*exp(-1j*(2*pi*fOL*Ts*n)); % Demodulación a frecuencia intermedia
-%--------------------------------------------------------------------------
-%               Generación de ruido para mejorar el modelo 
-CN0db = 20; % Relacion señal a ruido en DB
-CN0 = 10^(.1*CN0db);
-N = 1/(Ts*CN0);
-% El ruido se genera a partir de una distribución complex normal
-wI=randn(1,length(n));
-wQ=randn(1,length(n));
-nI=sqrt(N/2).*wI; %Ruido en fase
-nQ=sqrt(N/2).*wQ; %Ruido en quadratura
-ruido=nI+1i*nQ; %Ruido "Recibido"
-%--------------------------------------------------------------------------
-%                       Modelo de señal + ruido (sin considerar multicamino)
-z = s2+ruido; 
-Densidad_espectral(z,fs); 
-
 %%                        Adquisición (coherente)
 %--------------------------------------------------------------------------
 % Se define una cantidad de muestras a procesar en la adquisición 
