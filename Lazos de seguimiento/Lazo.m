@@ -338,7 +338,7 @@ for k=1:length(P_VD)
                     break;
     end
 end
-
+%--------------------------------------------------------------------------
 %%                             Tracking
 %--------------------------------------------------------------------------
 
@@ -434,3 +434,4 @@ plot(1:10:10*length(pP),imag(pP),'linewidth',1);
 title(['Potencias I-Q Prompt - SV',num2str(NUMERO_DE_SATELITE)],'Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
 ylabel('Potencia [-]','Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
 xlabel('Tiempo [ms]','Fontsize',14,'FontAngle','italic','Interpreter','Latex');
+legend('I','Q') 
