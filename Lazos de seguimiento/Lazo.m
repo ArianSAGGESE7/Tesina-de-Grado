@@ -338,95 +338,7 @@ for k=1:length(P_VD)
                     break;
     end
 end
-%%                            Tracking v2
-% Obtenemos la frecuencia y el retardo refinado, implementamos el lazo de seguimiento en base 
-% a los 3 integradores discretos y con eso regeneramos las replicas
 
-fx = fx_fino ; % Frecuencia refinada es f_dop + fFI
-taux = taux_fino + (fx-fFI)/1540*MOM_TRAN; % tau fino más el tiempo que 
-Ti = 10e-3; % Tiempo durante el cual voy a hacer el seguimiento
-M = floor(Ti/Ts); % Cantidad de muestras a procesar
-nt = 0:M-1; % Puntos de recorrido de las muestras
-MS = floor((TD-MOM_TRAN)/Ti); % Voy a realizar el seguimiento pero de a bloques dados por MS
-% Lo leeria como, cuantas veces puedo hacer el seguimiento con MS bloques de M muestras de 10 ms
-
-
-% Definimos parámetros del lazo de portadora y del lazo de código 
-
-% Lazo de código 
-BW_code = 1; % Ancho de banda del filtro en [Hz]
-K0 = 4*BW_code*Ti; % Constante de lazo de código
-
-% Lazo de portadora
-BW_freq = 15; % BW de filtro de lazo de portadora
-a2=2.4*BW_freq/0.7845*Ti; %Ctes de lazo de portadora
-a1=1.1*(BW_freq/0.7845*Ti)^2;
-a0=(BW_freq/0.7845*Ti)^3;
-
-% Variables de estado para el lazo de portadora
-out_p2=0;
-out_p1=0;
-out_p0=(fx-fFI)*2*pi*Ti;
-
-% Código y exponencial 
-c=cx(mod(floor((nt*Ts-taux*Tchip)/Tchip),length(cx))+1); %Réplica de código inicial
-s=exp(1j*(2*pi*fx*nt*Ts)); %Réplica de portadora inicial
-
-
-%Inicio de trackeo
-for k=0:MS/2-1
-    zseg=z(floor(MOM_TRAN/Ts)+k*floor(20e-3/Ts):M+floor(MOM_TRAN/Ts-1)+(k)*floor(20e-3/Ts)); %Selección de slot
-    %Lazo de portadora:
-    P=sum(conj(c.*s).*zseg); %Correlación prompt
-    IPS=real(P); % Parte real
-    QPS=imag(P); % Parte imaginaria
-    D=atan(QPS/IPS); % Discriminador de fase
-    out_p0 = out_p0+a2*D; % Variable de estado (Frecuencia estimada)
-    out_p1 = out_p1 + a1*D + out_p0; % Variable de estado (Fase estimada)
-    out_p2 = out_p2 + a0*D + out_p1; % Salida del lazo: fase estimada
-    fdop=out_p0/(2*pi*Ti); %Frecuencia estimada
-
-    %Lazo de código:
-    sE=s.*cx(mod(floor((nt*Ts-CODE_LOOP*taux*Tchip+.5*Tchip)/Tchip),1023)+1); %Réplica early
-    E=sum(conj(sE).*zseg); %Correlación early
-    sL=s.*cx(mod(floor((nt*Ts-CODE_LOOP*taux*Tchip-.5*Tchip)/Tchip),1023)+1); %Réplica late
-    L=sum(conj(sL).*zseg); %Correlación late
-    delta_tau=.5*(abs(E)-abs(L))/(abs(E)+abs(L)); %Discriminador normalizado
-
-    taux=taux-K0*delta_tau+FC_ASIST*fdop/1540;  %Variable de estado del lazo de código y asistencia (realimentación)
-    %del lazo de portadora
-    s=exp(1j*(2*pi*(fFI+FREQ_LOOP*fdop)*Ts*nt+FREQ_LOOP*out_p2)); %Ajuste de réplica de portadora
-    c=cx(mod(floor((nt*Ts-CODE_LOOP*taux*Tchip)/Tchip),1023)+1); %Ajuste de réplica de código
-
-    x_seg(k+1,1)=taux*Tchip*3e8; %Estimación de pseudorango
-    fDD(k+1)=-fdop; %Estimación de doppler
-    pE(k+1)=E; %Potencia de correlación early
-    pL(k+1)=L; %Potencia de correlación late
-    pP(k+1)=P; %Potencia de correlación prompt
-
-end
-
-close all; clc
-figure(1)
-hold on
-%Potencias de correlación
-plot((0:length(pP)-1)*MS*Ti,abs(pP),'linewidth',1); grid on; hold on;
-plot((0:length(pE)-1)*MS*Ti,abs(pE),'linewidth',1); hold on
-plot((0:length(pL)-1)*MS*Ti,abs(pL),'linewidth',1); 
-
-title(['Potencias P-E-L - SV',num2str(NUMERO_DE_SATELITE)],'Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
-ylabel('Potencia [-]','Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
-xlabel('Tiempo [ms]','Fontsize',14,'FontAngle','italic','Interpreter','Latex');
-legend('P','E','L')
-figure(2)
-%I y Q de potencia prompt
- plot(1:10:10*length(pP),abs(real(pP)),'linewidth',1); grid on; hold on
-plot(1:10:10*length(pP),imag(pP),'linewidth',1);
-title(['Potencias I-Q Prompt - SV',num2str(NUMERO_DE_SATELITE)],'Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
-ylabel('Potencia [-]','Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
-xlabel('Tiempo [ms]','Fontsize',14,'FontAngle','italic','Interpreter','Latex');
-
-%----------------------------------------------------------------------------------------
 %%                             Tracking
 %--------------------------------------------------------------------------
 
@@ -492,7 +404,6 @@ for k=0:(MS-1)/2
 end
 %%
 close all
-figure(1)
 %pseudorango
 % subplot(4,1,1); plot(1:10:10*length(x_seg),x_seg,'linewidth',1); grid on; 
 % title(['Pseudorango estimado - SV',num2str(NUMERO_DE_SATELITE)],'Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 
