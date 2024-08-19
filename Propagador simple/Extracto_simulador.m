@@ -1,7 +1,7 @@
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%%%%%%%%% Script para correr los eventos desde el simulador %%%%%%%%%%%%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% clear all;close 
+clear all;close 
 % Se agrega a la carpeta el path donde estan los .csv del simulador
 addpath("C:\Users\USUARIO\OneDrive - Alumnos Facultad de Ingeniería - UNLP\Tesina de Grado\GeneradorGPS\cmake-build-debug\")
 addpath("C:\Users\USUARIO\OneDrive - Alumnos Facultad de Ingeniería - UNLP\\BECA Senyt\Repositorio Git Senyt\code-senyt\");
@@ -9,7 +9,7 @@ addpath("C:\Users\USUARIO\OneDrive - Alumnos Facultad de Ingeniería - UNLP\\BEC
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Trayectoria LEO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% tierra_color();
+tierra_color();
 POS_LEO= csvread('estimated_positions.csv');
 POS_LEO =POS_LEO(:,2:4); 
 hold on;    
@@ -45,6 +45,7 @@ for i = 1:length(POS_PRN)
     plot3(POS_PRN(i,1),POS_PRN(i,2),POS_PRN(i,3), '+', 'MarkerSize', 4, 'color', 'b','LineWidth',2)
 
 end
+
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EVENTOS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Grafica los eventos totales, no tiene que ser con el PRN que graficamos
