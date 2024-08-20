@@ -62,11 +62,6 @@ ruido=nI+1i*nQ; %Ruido "Recibido"
 z = s2+ruido; 
 Densidad_espectral(z,fs); 
 
-%%                        Pérdida de potencia en el espacio libre
-
-for i=length(z)/2:length(z)
-        z(i) = z(i)/(1+i/length(z));
-end
 %%                        Adquisición (coherente)
 %--------------------------------------------------------------------------
 % Se define una cantidad de muestras a procesar en la adquisición 
