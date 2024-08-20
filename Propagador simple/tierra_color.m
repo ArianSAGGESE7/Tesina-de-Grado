@@ -2,7 +2,7 @@ function []=tierra_color()
 
 space_color = 'w';
 npanels = 180;   % Number of globe panels around the equator deg/panel = 360/npanels
-alpha   = 0.3; % globe transparency level, 1 = opaque, through 0 = invisible
+alpha   = 1; % globe transparency level, 1 = opaque, through 0 = invisible
 GMST0 = 0;%4.89496121282306; % Set up a rotatable globe at J2000.0
 % Earth texture image
 % image.

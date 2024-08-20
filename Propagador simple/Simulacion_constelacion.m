@@ -51,34 +51,34 @@ datos_PRN1 = data(SVn,:);
 
 % Posición inicial
 
-% [satPos,satVel1,satID] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
+[satPos,satVel1,satID] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
 
 Periodo=2*pi*sqrt((datos_PRN1.SQRTA^2)^3/(M*G));
 resolucion = 10 ; % [segundos]
-vueltas = 1;
+vueltas = 2;
 % Tengo que variar dentro de la estructura de tiempo los segundos
 % si la resolución temporal la tengo en segundos sino deberia cambiar
 
-% t.Second=t.Second+resolución
+t.Second=t.Second+resolucion;
 
-% for i=1:floor(Periodo/resolucion*vueltas)+resolucion
-% 
-%     [satPos] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
-% 
-%     t.Second=t.Second+resolucion;
-% 
-%     reg_tGPS(i) = t;
-% 
-%     Posicion_PRN1(:,i) = satPos';
-% end
+for i=1:floor(Periodo/resolucion*vueltas)+resolucion
+
+    [satPos] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
+
+    t.Second=t.Second+resolucion;
+
+    reg_tGPS(i) = t;
+
+    Posicion_PRN1(:,i) = satPos';
+end
 
 
 %
-% tierra_color()
-% comet3(Posicion_PRN1(1, :), Posicion_PRN1(2, :), Posicion_PRN1(3, :))
+tierra_color()
+comet3(Posicion_PRN1(1, :), Posicion_PRN1(2, :), Posicion_PRN1(3, :))
 %
 % Ground_track(Posicion_PRN1)% chequeo track earth
-
+%%
 % Leemos el archivo LEO
 dataLEO = yumaread("usat.yuma.txt");
 tLEO = dataLEO.Time(1);

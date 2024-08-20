@@ -1,4 +1,4 @@
-function [x,v] = kepler2ecef(a, e, i, Omega, omega, nu)
+function [x,v] = kepler2eci(a, e, i, Omega, omega, nu)
     % Convertir parámetros de entrada de grados a radianes
     i = deg2rad(i);
     Omega = deg2rad(Omega);

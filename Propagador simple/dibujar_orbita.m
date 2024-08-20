@@ -34,11 +34,11 @@ quiver3(0, 0, 0, 0, 0, 2*radio_tierra, 'b', 'LineWidth', 2); % Eje z
 
 
 % Definir parámetros orbitales
-a = 6371e3+600e3; % Semieje mayor en kilómetros
-e = 0; % Excentricidad
-i = deg2rad(97.77); % Inclinación en radianes
-Omega = deg2rad(0); % Longitud del nodo ascendente en radianes
-omega = deg2rad(0); % Argumento del perigeo
+a = 26560e3; % Semieje mayor en kilómetros
+e = 0.02; % Excentricidad
+i = deg2rad(55); % Inclinación en radianes
+Omega = deg2rad(60); % Longitud del nodo ascendente en radianes
+omega = deg2rad(150); % Argumento del perigeo
 
 % Crear un vector de anom alías verdaderas
 nu = linspace(0, 2*pi, 1000);
@@ -66,8 +66,7 @@ title('Órbita alrededor de la Tierra');
 % Ajustar la vista para que se muestre correctamente
 grid on;
 
-[x,v] = kepler2eci(a, e, i, Omega, omega, pi/3);
-plot3(x(1),x(2),x(3),'MarkerEdgeColor',"r",'LineWidth',10,'MarkerSize',6,'Marker','*')
+[x] = kepler2eci(a, e, i, Omega, omega, 0);
+plot3(x_s(1),y_s(2),z_s(3),'MarkerEdgeColor',"r",'LineWidth',10,'MarkerSize',6,'Marker','*')
 
 
-legend('Orbitad del Usat-1','interpreter')
