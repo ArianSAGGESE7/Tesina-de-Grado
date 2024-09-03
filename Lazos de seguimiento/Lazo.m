@@ -26,7 +26,7 @@ TD = 4; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
 %--------------------------------------------------------------------------
 %              Corrimiento por Doppler (consecuencia de retardos)
-doppler = 100;
+doppler = 500;
 PEND = -doppler*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor
 % se mantiene cuasi estático con respecto al movimiento del satélite GPS
@@ -48,7 +48,7 @@ s1 = cdata.*cs.*exp(1j*(2*pi*(fL1)*(Ts*n-taut))); % Señal modulada a fL1
 s2 = s1.*exp(-1j*(2*pi*fOL*Ts*n)); % Demodulación a frecuencia intermedia
 %--------------------------------------------------------------------------
 %               Generación de ruido para mejorar el modelo 
-CN0db = 48; % Relacion señal a ruido en DB
+CN0db = 100; % Relacion señal a ruido en DB
 CN0 = 10^(.1*CN0db);
 N = 1/(Ts*CN0);
 % El ruido se genera a partir de una distribución complex normal
@@ -151,7 +151,7 @@ surf((1:M)*Ts/Tchip, -(feini:df:fe-1)+fFI,abs(rzs));
 shading interp;
 ylabel('$f-f_0$','Interpreter','latex');
 xlabel('$\tau [chips]$','Interpreter','latex');
-zlabel('$|Rzs|$','Interpreter','latex');
+zlabel('$|r_{s\widetilde{s}}|$','Interpreter','latex');
 title('Plano Retardo Doppler','Fontsize',14,'Interpreter','Latex');
 %--------------------------------------------------------------------------
 
@@ -334,6 +334,8 @@ for k=0:(MS-1)/2
     pP(k+1)=P; %Potencia de correlación prompt
 
 end
+
+
 %%
 close all
 %pseudorango

@@ -56,26 +56,26 @@ datos_PRN1 = data(SVn,:);
 Periodo=2*pi*sqrt((datos_PRN1.SQRTA^2)^3/(M*G));
 resolucion = 10 ; % [segundos]
 vueltas = 2;
-% Tengo que variar dentro de la estructura de tiempo los segundos
-% si la resolución temporal la tengo en segundos sino deberia cambiar
-
-t.Second=t.Second+resolucion;
-
-for i=1:floor(Periodo/resolucion*vueltas)+resolucion
-
-    [satPos] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
-
-    t.Second=t.Second+resolucion;
-
-    reg_tGPS(i) = t;
-
-    Posicion_PRN1(:,i) = satPos';
-end
+% % Tengo que variar dentro de la estructura de tiempo los segundos
+% % si la resolución temporal la tengo en segundos sino deberia cambiar
+% 
+% t.Second=t.Second+resolucion;
+% 
+% for i=1:floor(Periodo/resolucion*vueltas)+resolucion
+% 
+%     [satPos] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
+% 
+%     t.Second=t.Second+resolucion;
+% 
+%     reg_tGPS(i) = t;
+% 
+%     Posicion_PRN1(:,i) = satPos';
+% end
 
 
 %
 tierra_color()
-comet3(Posicion_PRN1(1, :), Posicion_PRN1(2, :), Posicion_PRN1(3, :))
+% comet3(Posicion_PRN1(1, :), Posicion_PRN1(2, :), Posicion_PRN1(3, :))
 %
 % Ground_track(Posicion_PRN1)% chequeo track earth
 %%
@@ -96,7 +96,7 @@ for i=1:(Periodo/resolucion)*vueltas+resolucion
 
 end
 
-% comet3(Posicion_LEO(1, :), Posicion_LEO(2, :), Posicion_LEO(3, :))
+comet3(Posicion_LEO(1, :), Posicion_LEO(2, :), Posicion_LEO(3, :))
 
 %%                              2
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
