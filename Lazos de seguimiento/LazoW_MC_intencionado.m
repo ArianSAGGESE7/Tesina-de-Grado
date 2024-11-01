@@ -235,6 +235,7 @@ c=cx(mod(floor((ntt*Ts-taux_fino*Tch_-(k+1)*delta_T_code)/Tch_),length(cx))+1); 
 end
 
 PROMPE=0.5*sum(P_VD)/length(P_VD);
+plot(0:MSS-1,P_VD)
 for k=1:length(P_VD)
 ANTERIOR=P_VD(k);
 CENTRAL=P_VD(k+1);
@@ -247,7 +248,7 @@ end
 %FIN BUSQUEDA DE BIT DE DATOS----------------------------------------------
 
 %% SEGUIMIENTO---------------------------------------------------------------
-
+fx_fino=fFI+100;
 if SEGUIMIENTO==1
 
     fx=fx_fino; %Inicializo con frecuencia adquirida [Hz]
@@ -315,7 +316,7 @@ if SEGUIMIENTO==1
 end
 %%
 close all
-figure
+% figure
 % %pseudorango
 % subplot(2,2,1); plot(1:10:10*length(x_seg),x_seg,'linewidth',1); grid on; 
 % title(['Pseudorango estimado - SV',num2str(NUMERO_DE_SATELITE)],'Fontsize',14,'FontAngle','italic','Interpreter','Latex'); 

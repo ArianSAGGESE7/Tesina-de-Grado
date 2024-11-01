@@ -1,17 +1,17 @@
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%%%%%%%%% Script para correr los eventos desde el simulador %%%%%%%%%%%%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 clear all;close 
 % Se agrega a la carpeta el path donde estan los .csv del simulador
 addpath("C:\Users\USUARIO\OneDrive - Alumnos Facultad de Ingeniería - UNLP\Tesina de Grado\GeneradorGPS\cmake-build-debug\")
 addpath("C:\Users\USUARIO\OneDrive - Alumnos Facultad de Ingeniería - UNLP\\BECA Senyt\Repositorio Git Senyt\code-senyt\");
  
-
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Trayectoria LEO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tierra_color();
-POS_LEO= csvread('estimated_positions.csv');
-POS_LEO =POS_LEO(:,2:4); 
+POS_LEO = csvread('estimated_positions.csv');
+POS_LEO = POS_LEO(:,2:4); 
 hold on;    
 for i = 10000:100:20000
 
@@ -19,7 +19,7 @@ for i = 10000:100:20000
         plot3(POS_LEO(i,1),POS_LEO(i,2),POS_LEO(i,3), '+', 'MarkerSize', 10, 'color', 'magenta','LineWidth',2)
     end
 
-    plot3(POS_LEO(i,1),POS_LEO(i,2),POS_LEO(i,3), '+', 'MarkerSize', 4, 'color', 'yellow','LineWidth',2)
+    plot3(POS_LEO(i,1),POS_LEO(i,2),POS_LEO(i,3), '+', 'MarkerSize', 4, 'color', 'blue','LineWidth',2)
 
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Trayectoria GPS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -40,11 +40,11 @@ for i=1:length(POS_GPS)
 
 end
 
-for i = 1:length(POS_PRN)
-
-    plot3(POS_PRN(i,1),POS_PRN(i,2),POS_PRN(i,3), '+', 'MarkerSize', 4, 'color', 'b','LineWidth',2)
-
-end
+% for i = 1:length(POS_PRN)
+% 
+%     plot3(POS_PRN(i,1),POS_PRN(i,2),POS_PRN(i,3), '+', 'MarkerSize', 4, 'color', 'b','LineWidth',2)
+% 
+% end
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EVENTOS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,14 +53,28 @@ end
 % Para saber con que GPS se dio el evento podemos ver la tabla matriz
 % eventos (matrizeventos).
 
+% POS_GPS_RO Y POS_LEO_RO tienen las posiciones temporales de cuando ocurre
+% un evento de RO
 hold on
-
+tierra_color
 P_GPS = csvread('POS_GPS_RO.csv');
 P_LEO = csvread('POS_LEO_RO.csv');
 
-for i = 1:length(P_GPS)
+for i = 1:length(P_GPS)/10
 
     plot3([P_LEO(i,1) P_GPS(i,1)],[P_LEO(i,2) P_GPS(i,2)],[P_LEO(i,3) P_GPS(i,3)], '-', 'MarkerSize', 8, 'MarkerFaceColor', 'r','LineWidth',2)
+
+end
+
+for i = 1:length(P_GPS)/10
+
+    plot3(P_LEO(i,1) ,P_LEO(i,2),P_LEO(i,3),'o', 'MarkerSize', 5, 'MarkerFaceColor', 'g','MarkerEdgeColor','k','LineWidth',2)
+
+end
+
+for i = 1:length(P_GPS)/10
+
+    plot3(P_GPS(i,1) ,P_GPS(i,2),P_GPS(i,3),'o', 'MarkerSize', 5, 'MarkerFaceColor', 'm','MarkerEdgeColor','k','LineWidth',2)
 
 end
 
@@ -72,6 +86,9 @@ close all
 tierra_color
 LEO_cont = matriz_datos(:,2:4);
 GPS_cont = matriz_datos(:,5:7);
+
+% Matriz datos si no me equivoco tiene posiciones espaciales continuas de
+% un dado tiempo dado un evento de RO, pero separados
 hold on
 
 for i = 1:length(LEO_cont)/100
@@ -125,7 +142,16 @@ for i = 1:length(LEO_cont)-1
     end
 end
 
+%% Graficos de histograma para tesina 
 
+h = histogram(duracion_events(:,1));
+h.FaceColor =[0 0.1470 0.3410]	;
+h.EdgeColor = 'k';
+h.NumBins = 50;
+grid minor 
+title('Num. de ocultaciones vs tiempo','Interpreter','latex')
+xlabel('$Tiempo$  [s]','Interpreter','latex');
+ylabel('Num. de ocultaciones','Interpreter','latex');
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTES DE PROPAGAR %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Necesitamos tener una representación de cual es el evento de RO para cada
@@ -148,7 +174,8 @@ for i = 1:length(LEO_cont)-1
         minH = p*l+sort_events_LEO(i,:);
         minHlla = ecef2llaGeod(minH);
         hminLOS = minHlla(3);
-
+        
+        
         % Listado de altitudes minimas por satélite y la posicion del
         % satélite en forma de índice
 
@@ -162,7 +189,7 @@ for i = 1:length(LEO_cont)-1
 
     end
 
-
+        
 
 end
 
@@ -197,6 +224,20 @@ for i = 1:columnas/2
 end
 
 
+
+
+% % Punto característico de Ro 
+% RO_events_GPS=RO_events_GPS';
+% RO_events_USAT=RO_events_USAT';
+% for i = 1:length(RO_events_USAT)-1
+% 
+%         l = RO_events_GPS(i,:) - RO_events_USAT(i,:);
+%         p = -dot(l,RO_events_USAT(i,:)')/norm(l)^2;
+%         minH(i,:) = p*l+RO_events_USAT(i,:);        
+% 
+% end
+%  Ground_track(minH')
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ÁNGULOS Y EJES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Si corremos solo esto caargar posiciones de satélites
 % EJES DEFINIDOS SOBRE EL SATÉLITE
@@ -206,9 +247,9 @@ hold on
 
 tierra_color()
 
-for i=10:10
+for i=1:length(RO_events_GPS)
 
-    % Con Event determinamos cual de los eventos de los 403 queremo ver
+    % Con Event determinamos cual de los eventos de los 403 queremos ver
     Event = i;
     plot3([RO_events_USAT(1,Event) RO_events_GPS(1,Event)],[ RO_events_USAT(2,Event)  RO_events_GPS(2,Event)],[ RO_events_USAT(3,Event) RO_events_GPS(3,Event)], 'o', 'MarkerSize', 18, 'MarkerFaceColor', 'r','LineWidth',2)
 
@@ -269,44 +310,73 @@ for i=10:10
 
 end
 %% Posición óptima de antena
+box on
+grid on
+grid minor
+hold on
+plot(angulos(:,1),angulos(:,2),'x','LineWidth',.5,'Color',[0 0.1470 0.3410])
+xlabel('$\phi$','Interpreter','latex');
+ylabel('$\theta$','Interpreter','latex');
 
-% grid on
-% hold on;plot(angulos(:,1),angulos(:,2),'*')
-% xlabel('Elv','Interpreter','latex');
-% ylabel('Az','Interpreter','latex');
 
-lim_inf_inc = 0;
-lim_sup_inc = 50;
 
-lim_inf_az = 0;
-lim_sup_az = 20;
+x1=0;
+x2=45;
+y1=-15;
+y2= 15;
+x = [x1, x2, x2, x1, x1];
+y = [y1, y1, y2, y2, y1];
+plot(x, y, 'r-', 'LineWidth', 3);
 
-contador = 1;
+% Contamos cuantos eventos se consideran con el patrón de radiación como
+% filtro
+cont_event_finales=0;
+for i=1:length(angulos) 
 
-fila = 1;
+    if(angulos(i,1)<45 && angulos(i,2)>-15 && angulos(i,2)<15)
 
-while(lim_sup_inc<90 || lim_sup_az< 90)
-
-lim_inf_inc = lim_inf_inc +1;
-lim_sup_inc = lim_sup_inc +1;
-
-lim_inf_az = lim_inf_az +1;
-lim_sup_az = lim_sup_az +1;
-   
-for i=1:length(angulos)
-    
-    if (angulos(i,1)< lim_sup_inc && angulos(i,1)> lim_inf_inc && angulos(i,2)< lim_sup_az && angulos(i,2)> lim_inf_az)
-
-    contador = contador +1;
+        cont_event_finales = cont_event_finales +1; 
     end
-end
-
-matrix(fila,[ 1 2 3 4 5]) = [lim_inf_inc lim_sup_inc lim_inf_az lim_sup_az contador ];
-
-fila = fila +1;
-contador =1;
 
 end
+
+
+
+
+
+
+% lim_inf_inc = 0;
+% lim_sup_inc = 50;
+% 
+% lim_inf_az = 0;
+% lim_sup_az = 20;
+% 
+% contador = 1;
+% 
+% fila = 1;
+% 
+% while(lim_sup_inc<90 || lim_sup_az< 90)
+% 
+% lim_inf_inc = lim_inf_inc +1;
+% lim_sup_inc = lim_sup_inc +1;
+% 
+% lim_inf_az = lim_inf_az +1;
+% lim_sup_az = lim_sup_az +1;
+% 
+% for i=1:length(angulos)
+% 
+%     if (angulos(i,1)< lim_sup_inc && angulos(i,1)> lim_inf_inc && angulos(i,2)< lim_sup_az && angulos(i,2)> lim_inf_az)
+% 
+%     contador = contador +1;
+%     end
+% end
+% 
+% matrix(fila,[ 1 2 3 4 5]) = [lim_inf_inc lim_sup_inc lim_inf_az lim_sup_az contador ];
+% 
+% fila = fila +1;
+% contador =1;
+% 
+% end
 
 %% Simulación / Demo
 
