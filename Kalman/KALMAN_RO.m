@@ -27,14 +27,13 @@ Tdata = 1/fdata; %Periodo de bit de datos (20ms)
 fig_adq = 1; % Graficos de la sección de adquisición
 
 %% Generación de señal de GPS sintética 
-
-TD = 6; % Duración de datos (seg)
+TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
-doppler = 100.3333;
+doppler = 75.43443;
 PEND = -doppler*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor
 % se mantiene cuasi estático con respecto al movimiento del satélite GPS
-x = 20500e3 + (1:length(n))*PEND; % Rango [en metros] con inicialización en 20 km
+x = 2000e3 + (1:length(n))*PEND; % Rango [en metros] con inicialización en 20 km
 % El fenómeno Doppler se traduce como un retardo temporal en las señales de
 % banda base y portadora, por lo tanto existe un retardo asociado
 taut  =x/C; % Tiempo asociado al pseudorango
@@ -62,7 +61,7 @@ z = s2+ruido; % Modelo de señal + ruido
 Ti = 1e-3; % Tiempo de integración coherente
 M = floor(Ti/Ts); % Cantidad de muestras a procesar
 F = 10e3; % Frecuencias a recorrer
-df = 0.1*(1/Ti); % Paso en frecuencias 
+df = 0.1*(1/Ti)/2; % Paso en frecuencias 
 f_central = fFI; % Aquí está el espectro a la hora de adquirir
 K = F/df ; % Cantidad de pasos en frecuencia 
 feini  = f_central -F/2; % Frecuencia de inicio de la busqueda 
@@ -143,7 +142,7 @@ plot(1:length(P_VD),P_VD); %con este gráfico podemos identificar a
 % incurrir en un cambio de signo por parte de los bit de datos
 %% Etapa de inicialización del Filtro y Loop 
 
-Ti = 10e-3; % Tomamos el tiempo de integración de 5 ms
+Ti = 5e-3; % Tomamos el tiempo de integración de 5 ms
 T=Ti;
 % Parámetros del FIltro
 F= [1 T T^2/2; 0 1 T; 0 0 1]; % Matriz de transición de estados 
@@ -154,16 +153,27 @@ H = [1 T/2 T^2/6]; % Matriz de medición
 
 
 FL =  fL1; % Frecuencia de portadora GPS
-h0 = 2e-23; % Parámetros de ruido
-h2 = 2.13e-24;
+c = 3e8;
+
+
+h0 = 1.8e-20;   % SQGR --> h_0 = 2*10(segs)*(3e-11)^2 con el dato de 3e-11 ADEV @10segs averaging time.      
+h_1 = 0;
+h2 = 1.24e-21;
 q0 = h0/2;
 qw = 2*pi^2*h2;
-qa = 0*10^(-10); % Se obtiene de una tabla que se muestra en libro de Montenbruk;
-c = 3e8;
+qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
+
+
+% h0 = 2e-23; % Parámetros de ruido
+% h2 = 2.13e-24;
+% q0 = h0/2;
+% qw = 2*pi^2*h2;
+% qa = 1000; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
+
 
 % Matriz de diseño para tracking
 
-Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + q0*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + qw*[T 0 0; 0 0 0; 0 0 0];
+Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 
 
 % Matriz paper RO after tracking
@@ -194,8 +204,8 @@ x0 = [0;2*pi*(fdoppler);0]; % Inicialización de los estados con lo que obtuvimo
 BW_code = 1; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
-close all
-MOM_TRAN = 28e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
+
+MOM_TRAN = 30e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
 fx=fx_fino; % Frecuencia (Estimación inicial)
 taux=taux_fino+(fx-fFI)/1540*MOM_TRAN; % Retardo (Estimación inicial)
 M = floor(Ti/Ts) ; % Lo que nos da una cantidad de muestras a procesar de 
@@ -219,7 +229,6 @@ s=exp(1j*(2*pi*fx*nt*Ts)); %Réplica de portadora inicial
 
 for k=0:(MS-2)
     zseg=z(M*k+MOM_TRAN/Ts:M*(k+1)+MOM_TRAN/Ts-1); % Intervalo de muestras 
-
     % Correladores Prompt, Early y Late
     P=sum(conj(c.*s).*zseg); %Correlación prompt
     sE=s.*cx(mod(floor((nt*Ts-taux*Tchip+.5*Tchip)/Tchip),1023)+1); %Réplica early
@@ -234,21 +243,16 @@ for k=0:(MS-2)
     D_fase = atan(Qp/Ip);
     D_tau=.5*(abs(E)-abs(L))/(abs(E)+abs(L)); %Discriminador de código
     
-    % Componentes en fase y cuadratura para el cálculo de la CN0
-    IQ = [real(zseg);imag(zseg)]; % primera fila datos en fase y segunda en cuadratura en Ti segundos de integración
 
     % Estimación del retardo
-    taux=taux-K0*D_tau+x(2,k+2)*Ti/1540/2/pi; 
+    taux=taux-K0*D_tau+x(2,k+1)*Ti/1540/2/pi; 
 
     % Estimación por Kalman
     est_x_prior = F*x(:,k+1); % Propagación
-    Px_prior(:,:,k+2) = F*Px_post(:,:,i+1)*F.' + Q; % Estimación
-    % Para el cálculo de R debemos estimar CN0
-    % [CN0]=CN0_estimation(IQ(1,:),IQ(2,:),Ti);
-    % CN0_vec(k+1) = CN0;
-    % CN0=10^(0.1*40);
-    R = 1/(2*Ti*CN0); % Podriamos acá agregar la parte que esta en el paper con SI
-    K = Px_prior(:,:,k+2)*H.'/(H*Px_prior(:,:,k+2)*H.' + R);% Ganancia de Kalman
+    Px_prior(:,:,k+2) = F*Px_post(:,:,k+1)*F.' + Q; % Estimación
+
+    R = 1/(2*Ti*CN0);
+    K = Px_prior(:,:,k+2)*H.'/(H*Px_prior(:,:,k+2)*H.' + R); % Ganancia de Kalman
 
     est_x_posterior = est_x_prior + K*(D_fase);
 
@@ -269,25 +273,36 @@ for k=0:(MS-2)
 end
 
 %% Gráficos
-close all
-hold on 
-% figure(1)
-% plot((0:length(x(1,:))-1)*Ti,x(1,:),'LineWidth',1) % Fase
+
+
+close all;
+
+
 figure(1)
+title('Estados a la salida del filtro','Interpreter','latex')
+
+subplot(3,1,1)
+plot((1:length(Pp)),atan(imag(Pp)./real(Pp)),'LineWidth',1) % Error de fase
+legend('Salida del discriminador de fase')
+subplot(3,1,2)
 plot((0:length(x(1,:))-1)*Ti,x(2,:)/2/pi,'LineWidth',1) % Doppler
-% figure(1)
-% plot((0:length(x(1,:))-1)*Ti,x(3,:),'LineWidth',1) % Der Doppler
-% legend('phase','freq','der freq')
-% figure(4) % Potencia en Correladores
-% hold on
-% plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on; hold on;
-% plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
-% plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
-% 
-figure(5)
+legend('Estimación de dopler')
+subplot(3,1,3)
+plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
+legend('Doppler rate')
+
+figure(2) 
 hold on
-plot((0:length(Pp)-1)*Ti,real(Pp),'linewidth',1); grid on; 
-plot((0:length(Pp)-1)*Ti,imag(Pp),'linewidth',1); 
+plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
+plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
+plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
+legend('Prompt','early','late','Interpreter','latex')
+
+
+% figure(5)
+% hold on
+% plot((0:length(Pp)-1)*Ti,real(Pp),'linewidth',1); grid on; 
+% plot((0:length(Pp)-1)*Ti,imag(Pp),'linewidth',1); 
 
 % figure(6)
 % hold on
@@ -295,9 +310,3 @@ plot((0:length(Pp)-1)*Ti,imag(Pp),'linewidth',1);
 % plot(CN0_vec(1:end),squeeze(Kk(2,1,1:end-1))') % Ganancia de Kalman para frec
 % plot(CN0_vec(1:end),squeeze(Kk(3,1,1:end-1))') % Ganancia de Kalman para der frec
 
-
-% Falta valores para la inicialización
-% Falta gráficos y ver como sacamos el exceso de Doppler que es lo
-% interesante
-% Cambio en el cálculo de la CN0
-% Que medidas me llegan y como las puedo poner en las innovations
