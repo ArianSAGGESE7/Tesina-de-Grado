@@ -26,11 +26,17 @@ fig_adq =1;
 %% Generación de señal de GPS sintética 
 TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
-doppler = 75.43443;
-PEND = -doppler*lambda*Ts; % Como cambia el Doppler muestra a muestra
+doppler = 75.43443*ones(1,length(n));
+
+Doppler_end = 1.1; % Valor final del Doppler relativo al Doppler definido
+% doppler(1/Ts:2/Ts)= doppler(1)*Doppler_end % Rampa de frecuencia
+doppler(1/Ts:2/Ts)= doppler(1) + doppler(1)*(Doppler_end-1).*(0:length(doppler(1/Ts:2/Ts))-1)/(length(doppler(1/Ts:2/Ts))-1); % Escalón de frecuencia
+
+
+PEND = -doppler.*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor
 % se mantiene cuasi estático con respecto al movimiento del satélite GPS
-x = 20000e3 + (1:length(n))*PEND; % Rango [en metros] con inicialización en 20 km
+x = 20000e3 + (1:length(n)).*PEND; % Rango [en metros] con inicialización en 20 km
 % El fenómeno Doppler se traduce como un retardo temporal en las señales de
 % banda base y portadora, por lo tanto existe un retardo asociado
 taut  =x/C; % Tiempo asociado al pseudorango
@@ -112,7 +118,7 @@ if fig_adq
 
 end
 %% Identificamos el comienzo del bit de datos 
-
+frecuencia_find = 420050;
 fx_fino=frecuencia_find ; %Declaro frecuencia
 taux_fino=retardo_find;
 T = 10e-3; % Tiempo de integración
@@ -172,6 +178,8 @@ qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 
+Q=Q*100;
+
 % Matriz paper RO after tracking
 
 % Q = 1e6*[(T*q0+T^3/3*qw + T^5/20*qa/c^2)  (T^2/2*qw + T^4/8*qa/c^2)  (T^3/6*qa/c^2);
@@ -191,7 +199,7 @@ Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 
 % Q = Q + [covxy, [0 0].';[0 0 0]];
 
 
-P0 = [pi^2/3 0 0; 0 (2*pi*100)^2/12 0 ; 0 0 5] ; % Matriz de covarianza del error (Hay que incializarla)
+P0 = [pi^2/3 0 0; 0 (2*pi*df)^2/12 0 ; 0 0 5] ; % Matriz de covarianza del error (Hay que incializarla)
 
 x0 = [0;2*pi*(fdoppler);0]; % Inicialización de los estados con lo que obtuvimos de la etapa de ADQ
 
@@ -269,7 +277,6 @@ for k=0:(MS-2)
 end
 
 %% Gráficos
-close all
 
 hold on
 
