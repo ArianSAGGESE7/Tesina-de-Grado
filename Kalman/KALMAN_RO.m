@@ -22,10 +22,7 @@ Ts = 1/fs; % Tiempo de muestreo
 fdata = 50; % Tasa de datos 
 Tdata = 1/fdata; %Periodo de bit de datos (20ms)
 
-
-% Enablear gráficos
-fig_adq = 1; % Graficos de la sección de adquisición
-
+fig_adq =1;
 %% Generación de señal de GPS sintética 
 TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
@@ -33,7 +30,7 @@ doppler = 75.43443;
 PEND = -doppler*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor
 % se mantiene cuasi estático con respecto al movimiento del satélite GPS
-x = 2000e3 + (1:length(n))*PEND; % Rango [en metros] con inicialización en 20 km
+x = 20000e3 + (1:length(n))*PEND; % Rango [en metros] con inicialización en 20 km
 % El fenómeno Doppler se traduce como un retardo temporal en las señales de
 % banda base y portadora, por lo tanto existe un retardo asociado
 taut  =x/C; % Tiempo asociado al pseudorango
@@ -171,10 +168,9 @@ qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 % qa = 1000; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 
 
-% Matriz de diseño para tracking
+% Matriz de diseño para tracking (paper de mail)
 
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
-
 
 % Matriz paper RO after tracking
 
@@ -273,30 +269,35 @@ for k=0:(MS-2)
 end
 
 %% Gráficos
+close all
 
-
-close all;
+hold on
 
 
 figure(1)
 title('Estados a la salida del filtro','Interpreter','latex')
 
 subplot(3,1,1)
-plot((1:length(Pp)),atan(imag(Pp)./real(Pp)),'LineWidth',1) % Error de fase
+hold on
+plot((1:length(Pp))*Ti,atan(imag(Pp)./real(Pp)),'LineWidth',1) % Error de fase
 legend('Salida del discriminador de fase')
 subplot(3,1,2)
+hold on
 plot((0:length(x(1,:))-1)*Ti,x(2,:)/2/pi,'LineWidth',1) % Doppler
-legend('Estimación de dopler')
+plot((1:length(doppler))*Ts,doppler)
+% xlim([0 0.5])
+legend('Estimación de Doppler')
 subplot(3,1,3)
 plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
 legend('Doppler rate')
 
-figure(2) 
-hold on
-plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
-plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
-plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
-legend('Prompt','early','late','Interpreter','latex')
+
+% figure(2) 
+% hold on
+% plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
+% plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
+% plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
+% legend('Prompt','early','late','Interpreter','latex')
 
 
 % figure(5)
