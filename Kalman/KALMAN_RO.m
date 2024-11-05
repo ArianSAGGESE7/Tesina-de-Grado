@@ -4,9 +4,9 @@
                         clc;clear all;close all;
 
 
-%               ===========================================
+%             =================================================
 %             Primera prueba con señal sintética normal de GPS
-%               ===========================================
+%             =================================================
 %% Carga de datos 
 
 NUMERO_DE_SATELITE = 1; % Adquisición del satélite 
@@ -26,13 +26,13 @@ fig_adq =1;
 %% Generación de señal de GPS sintética 
 TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
-doppler = 75.4344*ones(1,length(n));
-
-% Doppler_end = 1; % Valor final del Doppler relativo al Doppler definido
-% doppler(1/Ts:2/Ts)= doppler(1)*Doppler_end % Rampa de frecuencia
-% doppler(1/Ts:2/Ts)= doppler(1) + doppler(1)*(Doppler_end-1).*(0:length(doppler(1/Ts:2/Ts))-1)/(length(doppler(1/Ts:2/Ts))-1); % Escalón de frecuencia
-
-
+doppler = 35.4344;
+t_on = 1;
+t_off =2.5;
+amp_final =1.9;
+mode = 2; % 1 esc 2 amp other -
+Amp_ini =1; % Amplitud por encima de donde arranca el doppler
+[doppler] = Gen_ramp_esc_doppler(doppler,TD,Ts,mode,t_on,t_off,amp_final,Amp_ini); % Generador de perfil de Doppler
 PEND = -doppler.*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor
 % se mantiene cuasi estático con respecto al movimiento del satélite GPS
@@ -98,11 +98,12 @@ rzs=rzt;
 [row, col] = ind2sub(size(rzs), linear_index);
 
 a = (1:M)*Ts/Tchip;
-b=(feini:df:fe)-fFI;
+b=-(feini:df:fe-df)+fFI;
 if (b(row) == 0)
 
     row = row+1;
 end
+
 retardo_find =a(col); % Porcion en chips de retardo
 frecuencia_find = b(row) +fFI; % Frecuencia de pico máximo (no centrada en fFI)
 
@@ -118,6 +119,8 @@ if fig_adq
 
 end
 %% Identificamos el comienzo del bit de datos 
+frecuencia_find=420050;
+
 fx_fino=frecuencia_find ; %Declaro frecuencia
 taux_fino=retardo_find;
 T = 10e-3; % Tiempo de integración
@@ -144,7 +147,7 @@ plot(1:length(P_VD),P_VD); %con este gráfico podemos identificar a
 % incurrir en un cambio de signo por parte de los bit de datos
 %% Etapa de inicialización del Filtro y Loop 
 
-Ti = 5e-3; % Tomamos el tiempo de integración de 5 ms
+Ti = 1e-3; % Tomamos el tiempo de integración de 5 ms
 T=Ti;
 % Parámetros del FIltro
 F= [1 T T^2/2; 0 1 T; 0 0 1]; % Matriz de transición de estados 
@@ -172,12 +175,11 @@ qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 % qw = 2*pi^2*h2;
 % qa = 1000; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 
-
 % Matriz de diseño para tracking (paper de mail)
 
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 
-
+Q= 1000*Q;
 % Matriz paper RO after tracking
 
 % Q = 1e6*[(T*q0+T^3/3*qw + T^5/20*qa/c^2)  (T^2/2*qw + T^4/8*qa/c^2)  (T^3/6*qa/c^2);
@@ -190,13 +192,13 @@ Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 
 % h_1=0;
 % h_2=2.13e-24;
 % Sj = 90e3;   % Intensidad del jerk. "Smoother-based GPS Signal Tracking in a SDR" pp. 22 da la refe de Sj=1300 rad^2/s^5
-% Q = 5e-4*[pi^2*T^5/5 pi*T^4/4 pi*T^3/3;pi*T^4/4 T^3/3 T^2/2;pi*T^3/3 T^2/2 T]*Sj;
+% Q = 5e4*[pi^2*T^5/5 pi*T^4/4 pi*T^3/3;pi*T^4/4 T^3/3 T^2/2;pi*T^3/3 T^2/2 T]*Sj;
 % % Allan variance covariance model (2-state)
 % covxy = (2*pi*fL1)^2*[(h0*T + 2*h_1*T^2 + 2/3*pi^2*h_2*T^3) , (2*h_1*T + pi^2*h_2*T^2) ; ...
 %                               (2*h_1*T + pi^2*h_2*T^2)              , (2*h_1 + 2*pi^2*h_2*T)];
 % Q = Q + [covxy, [0 0].';[0 0 0]];
-
-
+% 
+% Q = 100*Q
 P0 = [pi^2/3 0 0; 0 (2*pi*df)^2/12 0 ; 0 0 1] ; % Matriz de covarianza del error (Hay que incializarla)
 
 x0 = [0;2*pi*(fdoppler);0]; % Inicialización de los estados con lo que obtuvimos de la etapa de ADQ
@@ -207,7 +209,7 @@ BW_code = 1; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
 
-MOM_TRAN = 22e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
+MOM_TRAN = 29e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
 fx=fx_fino; % Frecuencia (Estimación inicial)
 taux=taux_fino+(fx-fFI)/1540*MOM_TRAN; % Retardo (Estimación inicial)
 M = floor(Ti/Ts) ; % Lo que nos da una cantidad de muestras a procesar de 
@@ -250,7 +252,7 @@ for k=0:(MS-2)
     
 
     % Estimación del retardo
-    taux=taux-K0*D_tau+x(2,k+1)*Ti/1540/2/pi; 
+    % taux= taux - K0*D_tau + x(2,k+1)*Ti/1540/2/pi; 
 
     % Estimación por Kalman
     est_x_prior = F*x(:,k+1); % Propagación
@@ -262,7 +264,10 @@ for k=0:(MS-2)
     est_x_posterior = est_x_prior + K*(D_fase);
 
     Px_post(:,:,k+2) = Px_prior(:,:,k+2) - K*H*Px_prior(:,:,k+2); % Cálculo de innovaciones
-    
+
+    % Estimación del retardo
+    taux= taux - K0*D_tau + est_x_posterior(2)*Ti/1540/2/pi + est_x_posterior(2)*Ti^2/2/1540; 
+
     % Vectores
     x(:,k+2) = est_x_posterior;
     Kk(:,:,k+2) = K; 
@@ -270,6 +275,7 @@ for k=0:(MS-2)
     Ep(:,k+1)=E;
     Lp(:,k+1)=L;
     
+
     % Generamos réplica local para volver a entrar a los discriminadores 
     s=exp(1j*(2*pi*(fFI+x(2,k+2)/2/pi)*Ts*nt+x(1,k+2))); % Ajuste de réplica de portadora
     c=cx(mod(floor((nt*Ts-taux*Tchip)/Tchip),1023)+1); % Ajuste de réplica de código
@@ -281,7 +287,7 @@ end
 %% Gráficos
 
 hold on
-
+% close all
 
 figure(1)
 title('Estados a la salida del filtro','Interpreter','latex')
@@ -301,11 +307,11 @@ plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
 legend('Doppler rate')
 
 
-figure(2) 
+% figure(2) 
 hold on
 plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
-plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
-plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
+% plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
+% plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
 legend('Prompt','early','late','Interpreter','latex')
 
 
