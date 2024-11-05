@@ -26,11 +26,11 @@ fig_adq =1;
 %% Generación de señal de GPS sintética 
 TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
-doppler = 75.43443*ones(1,length(n));
+doppler = 75.4344*ones(1,length(n));
 
-Doppler_end = 1.1; % Valor final del Doppler relativo al Doppler definido
+% Doppler_end = 1; % Valor final del Doppler relativo al Doppler definido
 % doppler(1/Ts:2/Ts)= doppler(1)*Doppler_end % Rampa de frecuencia
-doppler(1/Ts:2/Ts)= doppler(1) + doppler(1)*(Doppler_end-1).*(0:length(doppler(1/Ts:2/Ts))-1)/(length(doppler(1/Ts:2/Ts))-1); % Escalón de frecuencia
+% doppler(1/Ts:2/Ts)= doppler(1) + doppler(1)*(Doppler_end-1).*(0:length(doppler(1/Ts:2/Ts))-1)/(length(doppler(1/Ts:2/Ts))-1); % Escalón de frecuencia
 
 
 PEND = -doppler.*lambda*Ts; % Como cambia el Doppler muestra a muestra
@@ -64,7 +64,7 @@ z = s2+ruido; % Modelo de señal + ruido
 Ti = 1e-3; % Tiempo de integración coherente
 M = floor(Ti/Ts); % Cantidad de muestras a procesar
 F = 10e3; % Frecuencias a recorrer
-df = 0.1*(1/Ti)/2; % Paso en frecuencias 
+df = 0.05*(1/Ti); % Paso en frecuencias 
 f_central = fFI; % Aquí está el espectro a la hora de adquirir
 K = F/df ; % Cantidad de pasos en frecuencia 
 feini  = f_central -F/2; % Frecuencia de inicio de la busqueda 
@@ -118,7 +118,6 @@ if fig_adq
 
 end
 %% Identificamos el comienzo del bit de datos 
-frecuencia_find = 420050;
 fx_fino=frecuencia_find ; %Declaro frecuencia
 taux_fino=retardo_find;
 T = 10e-3; % Tiempo de integración
@@ -178,7 +177,6 @@ qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 
-Q=Q*100;
 
 % Matriz paper RO after tracking
 
@@ -199,7 +197,7 @@ Q=Q*100;
 % Q = Q + [covxy, [0 0].';[0 0 0]];
 
 
-P0 = [pi^2/3 0 0; 0 (2*pi*df)^2/12 0 ; 0 0 5] ; % Matriz de covarianza del error (Hay que incializarla)
+P0 = [pi^2/3 0 0; 0 (2*pi*df)^2/12 0 ; 0 0 1] ; % Matriz de covarianza del error (Hay que incializarla)
 
 x0 = [0;2*pi*(fdoppler);0]; % Inicialización de los estados con lo que obtuvimos de la etapa de ADQ
 
@@ -209,7 +207,7 @@ BW_code = 1; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
 
-MOM_TRAN = 30e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
+MOM_TRAN = 22e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
 fx=fx_fino; % Frecuencia (Estimación inicial)
 taux=taux_fino+(fx-fFI)/1540*MOM_TRAN; % Retardo (Estimación inicial)
 M = floor(Ti/Ts) ; % Lo que nos da una cantidad de muestras a procesar de 
@@ -220,6 +218,9 @@ x = zeros(3,MS);
 Kk = zeros(3,1,MS);    
 Px_post = zeros(3,3,MS);
 Px_prior = zeros(3,3,MS);
+Pp = zeros(1,MS);
+Ep = zeros(1,MS);
+Lp = zeros(1,MS);
 Px_post(:,:,1) = P0;
 x(:,1)= x0;
 
@@ -276,6 +277,7 @@ for k=0:(MS-2)
     % Continuamos en el lazo
 end
 
+
 %% Gráficos
 
 hold on
@@ -299,12 +301,12 @@ plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
 legend('Doppler rate')
 
 
-% figure(2) 
-% hold on
-% plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
-% plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
-% plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
-% legend('Prompt','early','late','Interpreter','latex')
+figure(2) 
+hold on
+plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
+plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
+plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
+legend('Prompt','early','late','Interpreter','latex')
 
 
 % figure(5)
