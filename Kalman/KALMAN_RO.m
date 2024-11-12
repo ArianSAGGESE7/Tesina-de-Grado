@@ -27,11 +27,11 @@ fig_adq =1;
 TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
 doppler = 35.4344;
-t_on = 1;
-t_off =2.5;
-amp_final =1.9;
+t_on = 1.3;
+t_off =2.4;
+amp_final =1.5;
 mode = 2; % 1 esc 2 amp other -
-Amp_ini =1; % Amplitud por encima de donde arranca el doppler
+Amp_ini =-0.5; % Amplitud por encima de donde arranca el doppler
 [doppler] = Gen_ramp_esc_doppler(doppler,TD,Ts,mode,t_on,t_off,amp_final,Amp_ini); % Generador de perfil de Doppler
 PEND = -doppler.*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor
@@ -104,7 +104,7 @@ if (b(row) == 0)
     row = row+1;
 end
 
-retardo_find =a(col); % Porcion en chips de retardo
+retardo_find =a(col); % chips de retardo
 frecuencia_find = b(row) +fFI; % Frecuencia de pico máximo (no centrada en fFI)
 
 if fig_adq
@@ -179,7 +179,9 @@ qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 
-Q= 1000*Q;
+Q= 0.5*Q;
+
+CN0=  10000*100000;
 % Matriz paper RO after tracking
 
 % Q = 1e6*[(T*q0+T^3/3*qw + T^5/20*qa/c^2)  (T^2/2*qw + T^4/8*qa/c^2)  (T^3/6*qa/c^2);
@@ -205,11 +207,11 @@ x0 = [0;2*pi*(fdoppler);0]; % Inicialización de los estados con lo que obtuvimo
 
 
 % Parámetros del filtro de lazo
-BW_code = 1; % Ancho de banda del filtro en [Hz]
+BW_code = 4; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
 
-MOM_TRAN = 29e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
+MOM_TRAN = 2e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
 fx=fx_fino; % Frecuencia (Estimación inicial)
 taux=taux_fino+(fx-fFI)/1540*MOM_TRAN; % Retardo (Estimación inicial)
 M = floor(Ti/Ts) ; % Lo que nos da una cantidad de muestras a procesar de 
@@ -235,12 +237,14 @@ s=exp(1j*(2*pi*fx*nt*Ts)); %Réplica de portadora inicial
 % cálculo pasaron, cada instante en muestras equivale a un Ti
 
 for k=0:(MS-2)
-    zseg=z(M*k+MOM_TRAN/Ts:M*(k+1)+MOM_TRAN/Ts-1); % Intervalo de muestras 
+
+    zseg = z(M*k+MOM_TRAN/Ts:M*(k+1)+MOM_TRAN/Ts-1); % Intervalo de muestras 
+    
     % Correladores Prompt, Early y Late
-    P=sum(conj(c.*s).*zseg); %Correlación prompt
-    sE=s.*cx(mod(floor((nt*Ts-taux*Tchip+.5*Tchip)/Tchip),1023)+1); %Réplica early
-    E=sum(conj(sE).*zseg); %Correlación early
-    sL=s.*cx(mod(floor((nt*Ts-taux*Tchip-0.5*Tchip)/Tchip),1023)+1); %Réplica late
+    P = sum(conj(c.*s).*zseg); %Correlación prompt
+    sE = s.*cx(mod(floor((nt*Ts-taux*Tchip+.5*Tchip)/Tchip),1023)+1); %Réplica early
+    E = sum(conj(sE).*zseg); %Correlación early
+    sL = s.*cx(mod(floor((nt*Ts-taux*Tchip-.5*Tchip)/Tchip),1023)+1); %Réplica late
     L=sum(conj(sL).*zseg); %Correlación late
 
     % Discriminadores
@@ -266,7 +270,7 @@ for k=0:(MS-2)
     Px_post(:,:,k+2) = Px_prior(:,:,k+2) - K*H*Px_prior(:,:,k+2); % Cálculo de innovaciones
 
     % Estimación del retardo
-    taux= taux - K0*D_tau + est_x_posterior(2)*Ti/1540/2/pi + est_x_posterior(2)*Ti^2/2/1540; 
+    taux= taux - K0*D_tau + est_x_posterior(2)*Ti/1540/2/pi + est_x_posterior(3)*Ti^2/2/1540/2/pi; 
 
     % Vectores
     x(:,k+2) = est_x_posterior;
@@ -287,7 +291,6 @@ end
 %% Gráficos
 
 hold on
-% close all
 
 figure(1)
 title('Estados a la salida del filtro','Interpreter','latex')
@@ -307,11 +310,11 @@ plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
 legend('Doppler rate')
 
 
-% figure(2) 
+figure(2) 
 hold on
 plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
-% plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
-% plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
+plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
+plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
 legend('Prompt','early','late','Interpreter','latex')
 
 
