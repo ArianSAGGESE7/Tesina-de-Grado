@@ -18,6 +18,34 @@ sROfase = sRO.datosSRO.fase;
 
 
 
+if sRO.datosSRO.evento == 1
+        
+    fs = 505001; % Frecuencia de muestreo
+    Ts = 1/fs; % Tiempo de muestreo
+    tSIM = (0:length(sROMuestras))*Ts; % Tiempo de simulación
+    sROdoppler = flip_ro(sRO.datosSRO.doppler);
+    sROamp = flip_ro(sRO.datosSRO.amplitud);
+    % sROfase = flip_ro(sRO.datosSRO.fase);
+    sROMuestras =  flip_ro(sROMuestras);
+
+    % sROMuestras = sROamp.*exp(1j*(2*pi*cumtrapz(0:Ts:tSIM,(sROdoppler))+ sROfase));
+    % CN0_db = 45;
+    % CN0 = 10^(0.1*CN0_db);
+    % N0 = 0.8^2/2/(CN0);
+    % N0_var = fs*N0;
+    % 
+    % % El ruido se genera a partir de una distribución complex normal
+    % wI=randn(1,length(sROMuestras));
+    % wQ=randn(1,length(sROMuestras));
+    % nI=sqrt(N0_var/2).*wI; %Ruido en fase
+    % nQ=sqrt(N0_var/2).*wQ; %Ruido en quadratura
+    % ruido=nI+1i*nQ; %Ruido "Recibido"
+    % 
+    % sROMuestras = sROMuestras+ruido;
+
+end
+
+
 
 %%
 
@@ -47,9 +75,9 @@ q0 = h0/2;
 qw = 2*pi^2*h2;
 qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
-Q = 0.001*Q;
+% Q = 0.001*Q;
 
-
+Q = 0.5*Q;
 % % Parametros para las matrices de Kalman --------------------------------------------------------
 % h0 = 2e-23;   % SQGR --> h_0 = 2*10(segs)*(3e-11)^2 con el dato de 3e-11 ADEV @10segs averaging time.      
 % h_1 = 0;
@@ -160,8 +188,9 @@ plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
 % xlim([0 1])
 legend('Doppler rate')
 
-%% Graficos de amplitud y fase del evento 
 
+%% Graficos de amplitud y fase del evento 
+close all
 figure;
 
 subplot(3,1,1)
@@ -174,7 +203,7 @@ plot(tSIM(1:end-1),sROfase,'LineWidth',1.5)
 
 subplot(3,1,3)
 
-plot(tSIM(1:end-3),diff(diff(sROfase)./Ti)/Ti,'LineWidth',1.5)
+plot(tSIM(1:end-3),diff(diff(sROfase)./Ts)/Ts,'LineWidth',1.5)
 
 %% Excess Doppler
 

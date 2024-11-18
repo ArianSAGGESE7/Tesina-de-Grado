@@ -141,7 +141,7 @@ end
 % distintos eventos que estan en la riestra y poder interpolarlos para
 % muestrearlos nuevamente. (tener en cuenta que las muestras estan 1 por lo que indica la variable 'resolución')
 
-evento = 10; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
+evento = 7; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
 
 MuestrasLOSEvento = riestra_hminLOS(:,evento);
 MuestrasLOSEvento = MuestrasLOSEvento(MuestrasLOSEvento ~= 0); % Sacamos los ceros porque no todos los eventos duran lo mismo (y se rellena por default con cero)
@@ -228,7 +228,7 @@ if MuestrasLOSInterp(1) < 0
     datosSRO.evento = 1; % Creciente (se invierte)
 
 else 
-    datosSRO.evento = 1; % Decreciente (no se invierte)
+    datosSRO.evento = 0; % Decreciente (no se invierte)
 end
 save('Señal_RO', 'datosSRO', '-v7.3','-nocompression');
 %% Graficos de interpolación y ajuste
