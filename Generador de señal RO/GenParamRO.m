@@ -9,8 +9,8 @@ M = 5.972e24;    % Masa de la Tierra (kg)
 R = 6366000;     % Radio de la Tierra (m)
 
 
-% Leemos un archivo con las características de la propagación GPS 
-% Simulación GPS
+% Simulación de orbitas
+
 data = yumaread("almanac.yuma.week0100.061440.txt");
 SVn=3; % Satélite a simular
 datos_PRN1 = data(SVn,:);
@@ -19,37 +19,40 @@ Periodo=2*pi*sqrt((datos_PRN1.SQRTA^2)^3/(M*G)); % Periodo de la órbita del sat
 resolucion = 1 ; % Cada cuanto tenemos una muestra
 vueltas = 0.5;
 
+cargar_datos =1;
 
-for i=1:floor(Periodo/resolucion*vueltas)+resolucion
+if cargar_datos == 0
 
-    [satPos,satVel] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
-
-    t.Second=t.Second+resolucion;
-    tGPS(i) = t;
-    PosSAT(:,i) = satPos';
-    VelSAT(:,i) = satVel';
-end
-
-
-% tierra_color()
-% comet3(PosSAT(1, :), PosSAT(2, :), PosSAT(3, :))
-
-% Simulación del satélite LEO
-dataLEO = yumaread("usat.yuma.txt");
-tLEO = dataLEO.Time(1);
-for i=1:(Periodo/resolucion)*vueltas+resolucion
-
-    [satPos,satVel] = gnssconstellation(tLEO,dataLEO,GNSSFileType="YUMA");
-
-    % tLEO(i) = tLEO;
-
-    tLEO.Second=tLEO.Second+resolucion;
-
-    PosLEO(:,i) = satPos;
-    VelLEO(:,i) = satVel;
-end
-
+    for i=1:floor(Periodo/resolucion*vueltas)+resolucion
+    
+        [satPos,satVel] = gnssconstellation(t,datos_PRN1,GNSSFileType="YUMA");
+    
+        t.Second=t.Second+resolucion;
+        tGPS(i) = t;
+        PosSAT(:,i) = satPos';
+        VelSAT(:,i) = satVel';
+    end 
+    % tierra_color()
+    % comet3(PosSAT(1, :), PosSAT(2, :), PosSAT(3, :))
+    
+    % Simulación del satélite LEO
+    dataLEO = yumaread("usat.yuma.txt");
+    tLEO = dataLEO.Time(1);
+    for i=1:(Periodo/resolucion)*vueltas+resolucion  
+        [satPos,satVel] = gnssconstellation(tLEO,dataLEO,GNSSFileType="YUMA");    
+        % tLEO(i) = tLEO;    
+        tLEO.Second=tLEO.Second+resolucion;
+        PosLEO(:,i) = satPos;
+        VelLEO(:,i) = satVel;
+    end
 % comet3(PosLEO(1, :),PosLEO(2, :),PosLEO(3, :))
+    else    
+        datos = load("datosOrbit.mat");  
+        VelLEO = datos.VelLEO;
+        VelSAT = datos.VelSAT;
+        PosLEO = datos.PosLEO;
+        PosSAT = datos.PosSAT;
+end
 
 %% Calculo del Doppler 
 VelLEO(:,1) = [VelLEO(1,2)/2 VelLEO(2,2) VelLEO(3,2)] ;
@@ -172,7 +175,7 @@ amplitude_LEO = amplitude_LEO.amplitude_LEO'; % Datos que pertenecen a las muest
 phase_LEO = phase_LEO.phase_LEO';
 
 
-Amplitude_AJ = interp1(h_LOS_datos, amplitude_LEO, MuestrasLOSInterp, 'spline');
+Amplitude_AJ = interp1(h_LOS_datos, amplitude_LEO, MuestrasLOSInterp, 'spline'); % Interpolamos amplitud
 Phase_INT = interp1(h_LOS_datos, phase_LEO, MuestrasLOSInterp, 'spline'); % Interpolamos la fase
 
 % Cada evento tiene una duración máxima intrínseca de la duración real,
@@ -212,14 +215,21 @@ ruido=nI+1i*nQ; %Ruido "Recibido"
 
 
 sRO = sRO + ruido; % señal de salida para guardar 
-sRO = sRO;
+
 %% Guardar simulación
-etiqueta = sprintf('Descripción: Señal de RO \n Frecuencia de muestreo: %d Hz\nNúmero de muestras: %d \n evento de tipo %s \n CN0 [dB] = %d', fs, N,'decreciente',CN0_db);
+etiqueta = sprintf('Frecuencia de muestreo: %d Hz\nNúmero de muestras: %d \n CN0 [dB] = %d', fs, N,CN0_db);
 datosSRO.muestras = sRO;
 datosSRO.etiqueta = etiqueta; 
 datosSRO.doppler = fD_GEOM; 
 datosSRO.amplitud = ampRO;
 datosSRO.fase = phaseRO;
+
+if MuestrasLOSInterp(1) < 0
+    datosSRO.evento = 1; % Creciente (se invierte)
+
+else 
+    datosSRO.evento = 1; % Decreciente (no se invierte)
+end
 save('Señal_RO', 'datosSRO', '-v7.3','-nocompression');
 %% Graficos de interpolación y ajuste
 close all

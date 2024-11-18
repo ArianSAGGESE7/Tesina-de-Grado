@@ -17,6 +17,8 @@ sROamp = sRO.datosSRO.amplitud;
 sROfase = sRO.datosSRO.fase;
 
 
+
+
 %%
 
 fs = 505001; % Frecuencia de muestreo
