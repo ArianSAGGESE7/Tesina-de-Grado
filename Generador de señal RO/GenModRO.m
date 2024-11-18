@@ -67,7 +67,7 @@ end
 % Amplitud y fase de la señal observada en el LEO
 amplitude_LEO = abs(u_observed);
 phase_LEO = angle(u_observed);
-
+phase_atan = atan(imag(u_observed)./real(u_observed));
 % Gráficas de la señal
 figure;
 subplot(2, 1, 1);
@@ -77,7 +77,9 @@ ylabel('Amplitud');
 title('Amplitud de la señal RO en LEO');
 
 subplot(2, 1, 2);
+hold on
 plot(z_values, phase_LEO);
+plot(z_values, phase_atan);
 xlabel('Altura (m)');
 ylabel('Fase (radianes)');
 title('Fase de la señal RO en LEO');

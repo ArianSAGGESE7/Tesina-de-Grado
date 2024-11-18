@@ -30,8 +30,8 @@ doppler = 35.4344;
 t_on = 1.3;
 t_off =2.4;
 amp_final =1.5;
-mode = 2; % 1 esc 2 amp other -
-Amp_ini =-0.5; % Amplitud por encima de donde arranca el doppler
+mode = 1; % 1 esc 2 amp other -
+Amp_ini =1.5; % Amplitud por encima de donde arranca el doppler
 [doppler] = Gen_ramp_esc_doppler(doppler,TD,Ts,mode,t_on,t_off,amp_final,Amp_ini); % Generador de perfil de Doppler
 PEND = -doppler.*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor

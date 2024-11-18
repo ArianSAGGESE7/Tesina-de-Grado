@@ -201,7 +201,7 @@ A = 0.8 ; % Amplitud de la portadora para una altitud de 0 km de LOS
 CN0_db = 45;
 CN0 = 10^(0.1*CN0_db);
 N0 = A^2/2/(CN0);
-N0_var = fs*N0;
+N0_var = fs/CN0;
  
 % El ruido se genera a partir de una distribución complex normal
 wI=randn(1,N);
