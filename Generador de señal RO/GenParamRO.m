@@ -135,13 +135,13 @@ for ii = 1:length(hminLOS)
 end
 
 
-%% Interpolación LOS
+%% Interpolación LOS (Setea frecuencia de muestreo, tiempo de simulación)
 
 % La idea es poder generar una funcion de LOS que me permita agarrar
 % distintos eventos que estan en la riestra y poder interpolarlos para
 % muestrearlos nuevamente. (tener en cuenta que las muestras estan 1 por lo que indica la variable 'resolución')
 
-evento = 7; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
+evento = 5; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
 
 MuestrasLOSEvento = riestra_hminLOS(:,evento);
 MuestrasLOSEvento = MuestrasLOSEvento(MuestrasLOSEvento ~= 0); % Sacamos los ceros porque no todos los eventos duran lo mismo (y se rellena por default con cero)
@@ -151,12 +151,14 @@ MuestrasDopplerEvento = MuestrasDopplerEvento(MuestrasDopplerEvento~= 0);
 
 tEvento = (0:length(MuestrasLOSEvento)-1)*resolucion; % Esto es lo que dura el evento que analizamos
 
-fs = 505001; % Tasa de muestreo ====================================
+fs = 2.3e6; % Tasa de muestreo ====================================
 Ts = 1/fs;
 Tsim = 100;
 tInterp= (0:Ts:Tsim); % Tiempo a evaluar (con la resolución que se requiera, esto lo fijamos nosotros)
-
 N = length(tInterp); % Cantidad de muestras a procesar 
+
+
+%% Generación de señal en banda base solo Doppler
 
 MuestrasLOSInterp = interp1(tEvento,MuestrasLOSEvento, tInterp, 'spline'); % LOS para esa resolución
 MuestrasDopplerInterp = interp1(tEvento,MuestrasDopplerEvento,tInterp,'spline'); % Doppler para esa resolución 
@@ -214,11 +216,11 @@ nQ=sqrt(N0_var/2).*wQ; %Ruido en quadratura
 ruido=nI+1i*nQ; %Ruido "Recibido"
 
 
-sRO = sRO + ruido; % señal de salida para guardar 
+sRO1 = sRO + ruido; % señal de salida para guardar 
 
-%% Guardar simulación
+% Guardar simulación
 etiqueta = sprintf('Frecuencia de muestreo: %d Hz\nNúmero de muestras: %d \n CN0 [dB] = %d', fs, N,CN0_db);
-datosSRO.muestras = sRO;
+datosSRO.muestras = sRO1;
 datosSRO.etiqueta = etiqueta; 
 datosSRO.doppler = fD_GEOM; 
 datosSRO.amplitud = ampRO;
@@ -231,6 +233,73 @@ else
     datosSRO.evento = 0; % Decreciente (no se invierte)
 end
 save('Señal_RO', 'datosSRO', '-v7.3','-nocompression');
+%% Generación señal GNSS (chips + datos)
+
+% Interpolación de los datos preexistentes
+
+MuestrasLOSInterp = interp1(tEvento,MuestrasLOSEvento, tInterp, 'spline'); % LOS para esa resolución
+MuestrasDopplerInterp = interp1(tEvento,MuestrasDopplerEvento,tInterp,'spline'); % Doppler para esa resolución 
+
+
+% Se tiene que interpolar tanto la amplitud como la fase de forma tal de
+% que sucedan para lo que marca tInterp
+
+% Interpolación de la amplitud en función de la hLOS
+amplitude_LEO = load('datosGenRO.mat', 'amplitude_LEO');
+phase_LEO = load('datosGenRO.mat', 'phase_LEO');
+
+h_LOS_datos = linspace(-524.288e3/2, 524.288e3/2, 2^10)'; % Datos que pertenecen a las muestras reales (simulados)
+
+amplitude_LEO = amplitude_LEO.amplitude_LEO'; % Datos que pertenecen a las muestras reales (simulados)
+phase_LEO = phase_LEO.phase_LEO';
+
+
+Amplitude_AJ = interp1(h_LOS_datos, amplitude_LEO, MuestrasLOSInterp, 'spline'); % Interpolamos amplitud
+Phase_INT = interp1(h_LOS_datos, phase_LEO, MuestrasLOSInterp, 'spline'); % Interpolamos la fase
+
+fL1 = 1545.75e6;
+fL1 = 0;  % Lo dejamos así para seguir unicamente las variaciones Doppler
+ampRO = Amplitude_AJ;
+phaseRO = Phase_INT;
+fD_GEOM = MuestrasDopplerInterp;
+
+
+% Datos de señal GNSS-GPS
+
+NUMERO_DE_SATELITE = 1; % Adquisición del satélite 
+cx = cacode (NUMERO_DE_SATELITE); % Adquiero un período de 1023 chips para el satélite elegido
+fL1 = 1575.42e6; % Frecuencia nominal GPS
+fOL = 1575e6; % Frecuencia de oscilador local (no es necesariamente la misma)
+fFI = fL1-fOL; % Frecuencia intermedia
+Tchip = 1/(1023e3); % Tiempo de chip nominal 
+C = 3e8; % Velocidad de la luz
+fdata = 50; % Tasa de datos 
+Tdata = 1/fdata; %Periodo de bit de datos (20ms)
+
+taut = 0; % Este es el retardo que tenemos que modelar 
+
+cs = cx(mod(floor((tInterp-taut)/Tchip),length(cx))+1); % Código
+ndata=0:TD/Tdata-1; % Indice de datos
+data=sign(rand(1,length(ndata))-.5); % Datos generados de manera aleatoria
+cdata=data(mod(floor((tInterp-taut)/Tdata),length(data))+1);% Datos desplazados
+
+sRO = ampRO.*exp(1j*(2*pi*cumtrapz(tInterp,(fD_GEOM))+ phaseRO)); % Señal en banda base sin retardo
+
+A = 0.8 ; % Amplitud de la portadora para una altitud de 0 km de LOS 
+CN0_db = 45;
+CN0 = 10^(0.1*CN0_db);
+N0 = A^2/2/(CN0);
+N0_var = fs*N0;
+ 
+% El ruido se genera a partir de una distribución complex normal
+wI=randn(1,N);
+wQ=randn(1,N);
+nI=sqrt(N0_var/2).*wI; %Ruido en fase
+nQ=sqrt(N0_var/2).*wQ; %Ruido en quadratura
+ruido=nI+1i*nQ; %Ruido "Recibido"
+
+sROGNSS = sRO + ruido;
+saveVector(sROGNSS, 1e6, SigRoGnss);
 %% Graficos de interpolación y ajuste
 close all
 figure;
@@ -263,7 +332,7 @@ title('Parte Real de la señal de RO')
 %% Graficos de Doppler de simulación de órbita
 figure;
 subplot(3,1,1)
-plot(tInterp,fD,'LineWidth',1);
+plot(tInterp,fD,'LineWidth',1); 
 ylabel('$f_{Doppler}$','Interpreter','latex')
 subplot(3,1,2)
 plot((0:length(hminLOS)-1)*resolucion,hminLOS,'LineWidth',1)
