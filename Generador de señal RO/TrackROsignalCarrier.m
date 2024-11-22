@@ -15,23 +15,32 @@ sROdoppler = sRO.datosSRO.doppler;
 sROMuestras = sRO.datosSRO.muestras;
 sROamp = sRO.datosSRO.amplitud;
 sROfase = sRO.datosSRO.fase;
-
-
-
+    
 if sRO.datosSRO.evento == 1
-        
+     
     fs = 505001; % Frecuencia de muestreo
     Ts = 1/fs; % Tiempo de muestreo
-    tSIM = (0:length(sROMuestras))*Ts; % Tiempo de simulación
+    tSIM = (0:length(sROMuestras)-1)*Ts; % Tiempo de simulación
+    Int_suma =trapz(tSIM, sROdoppler);
+    exp_suma = exp(1j*2*pi*Int_suma);
+    sROMuestras =(conj(flip(sROMuestras)).*exp_suma);
+    
     sROdoppler =  flip_ro(sRO.datosSRO.doppler);
     sROamp = flip_ro(sRO.datosSRO.amplitud);
+    sROfase = flip_ro(sRO.datosSRO.fase);
+
+    % fs = 505001; % Frecuencia de muestreo
+    % Ts = 1/fs; % Tiempo de muestreo
+    % tSIM = (0:length(sROMuestras)-1)*Ts; % Tiempo de simulación
+    % sROdoppler =  flip_ro(sRO.datosSRO.doppler);
+    % sROamp = flip_ro(sRO.datosSRO.amplitud);
     % sROfase = flip_ro(sRO.datosSRO.fase);
-    sROMuestras =  flip_ro(sROMuestras);
+    % % sROMuestras =  flip_ro(sROMuestras);
     % 
-    % sROMuestras = sROamp.*exp(1j*(2*pi*cumtrapz(0:Ts:tSIM,(-1*sROdoppler))+ sROfase));
+    % sROMuestras = sROamp.*exp(1j*(2*pi*cumtrapz(tSIM,(sROdoppler))+ sROfase));
     % CN0_db = 45;
     % CN0 = 10^(0.1*CN0_db);
-    % N0 = 1^2/2/(CN0);
+    % N0 = .8^2/2/(CN0);
     % N0_var = fs*N0;
     % 
     % % El ruido se genera a partir de una distribución complex normal
@@ -78,7 +87,7 @@ qw = 2*pi^2*h2;
 qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 Q = 0.001*Q;
-
+% Q = 0.1*Q;
 % % Parametros para las matrices de Kalman --------------------------------------------------------
 % h0 = 2e-23;   % SQGR --> h_0 = 2*10(segs)*(3e-11)^2 con el dato de 3e-11 ADEV @10segs averaging time.      
 % h_1 = 0;
@@ -145,6 +154,7 @@ for k=0:(MS-2)
     Px_prior(:,:,k+1) = F*Px_post(:,:,k+1)*F.' + Q; % Estimación
 
     R = 1/(2*Ti*CN0(k+1));
+
     % R = 1/(2*Ti*CN0);
     K1= H*Px_prior(:,:,k+1)*H.' + R;
     K = Px_prior(:,:,k+1)*H.'/(K1); % Ganancia de Kalman
@@ -214,16 +224,3 @@ Doppler_Geo_int = interp1((0:length(sROdoppler)-1)*Ts,sROdoppler,(0:length(x(1,:
 figure(2)
 plot((0:length(x(1,:))-1)*Ti,Doppler_Geo_int-x(2,:)/2/pi,'LineWidth',1)
 title('Excess Doppler')
-
-    % Continuamos en el lazo
-
-    % if k > 8000
-    %     c=3e8;
-    %     h0 = 2e-23;
-    %     h_2=2.13e-24;
-    %     qw = 2*pi^2*h_2;
-    %     q0 = h0/2;
-    % Q = [(T*q0+T^3/3*qw + T^5/20*qa/c^2)  (T^2/2*qw + T^4/8*qa/c^2)  (T^3/6*qa/c^2);
-    %  (T^2/2*qw + T^4/8*qa/c^2)  (T*qw + T^3/3*qa/c^2) (T^2/2*qa/c^2)
-    %  (T^3/6*qa/c^2)  (T^2/2*qa/c^2) (T*qa/c^2)]*(2*pi*1575.45e6)^2; % Covarianza del proceso de ruido 
-    % end

@@ -54,33 +54,29 @@ if cargar_datos == 0
         PosSAT = datos.PosSAT;
 end
 
+
 %% Calculo del Doppler 
+
 VelLEO(:,1) = [VelLEO(1,2)/2 VelLEO(2,2) VelLEO(3,2)] ;
 fL1 =1575.42e6;
 c = 3e8;
-
 rLOS = (PosLEO-PosSAT)./(vecnorm(PosLEO-PosSAT)); % Vector Linea de Vista
 vRelLos = dot(VelLEO-VelSAT,rLOS); % Vector de proyección de la velocidad relativa 
 fD = fL1/c * (vRelLos); % Doppler
 
+d = vecnorm(PosLEO-PosSAT);
 
 %% Armado de la señal de radio Ocultación 
 
 % Los pasos son los siguientes:
-
 % Detectamos un evento con el criterio pre-establecido
-
 % De ese vento medimos la altitud de la linea de vista y la grabamos 
 % Esa linea de vista va a ser una altitud por una determinada cantidad de
 % tiempo.
-
-
 tam = size(PosLEO);
 hminLOS = zeros(1,tam(2));
 cont=1;
-
 % Cálculo de la altitud de la LOS de cada satélite punto a punto
-
 for index = 1:tam(2)
 
     l = PosSAT(:,index) - PosLEO(:,index);
@@ -90,50 +86,37 @@ for index = 1:tam(2)
     hminLOS(index) = minHlla(3);
 
 end
-
 % Determinación de eventos de RO (crecientes y decrecientes)
-
 for i = 1: length(hminLOS)-1
 
     if hminLOS(i) > 0 && hminLOS(i+1) < 0
-
         PosGPS_Evento(:,cont) = PosSAT(:,i);
         PosLEO_Evento(:,cont) = PosLEO(:,i);
         cont = cont+1;
     elseif hminLOS(i) <0 && hminLOS(i+1) > 0
-
         PosGPS_Evento(:,cont) = PosSAT(:,i);
         PosLEO_Evento(:,cont) = PosLEO(:,i);
         cont = cont+1;
-
     end
 
 end
-
 cnt_row = 1;
 cnt_col = 1;
 flag =0;
 for ii = 1:length(hminLOS)
 
     if (hminLOS(ii)>-150e3 && hminLOS(ii)<50e3)
-    
             flag = 1;
-            riestra_hminLOS(cnt_row,cnt_col) = hminLOS(ii);
+            riestra_hminLOS(cnt_row,cnt_col) = hminLOS(ii); 
             riestra_Doppler(cnt_row,cnt_col) = fD(ii);
+            riestra_distancia(cnt_row,cnt_col) = d(ii);
             cnt_row = cnt_row +1;
-
     elseif (flag ==1)
-
             cnt_col = cnt_col +1;
             cnt_row =1;
             flag = 0;
-
-    end
-
-    
-
+    end  
 end
-
 
 %% Interpolación LOS (Setea frecuencia de muestreo, tiempo de simulación)
 
@@ -141,20 +124,26 @@ end
 % distintos eventos que estan en la riestra y poder interpolarlos para
 % muestrearlos nuevamente. (tener en cuenta que las muestras estan 1 por lo que indica la variable 'resolución')
 
-evento = 5; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
+evento = 8; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
 
 MuestrasLOSEvento = riestra_hminLOS(:,evento);
 MuestrasLOSEvento = MuestrasLOSEvento(MuestrasLOSEvento ~= 0); % Sacamos los ceros porque no todos los eventos duran lo mismo (y se rellena por default con cero)
 
+
 MuestrasDopplerEvento = riestra_Doppler(:,evento); % Tomo de ese evento que registro la alitud del punto minimo de LOS su respectivo Doppler
 MuestrasDopplerEvento = MuestrasDopplerEvento(MuestrasDopplerEvento~= 0);
 
+
+MuestrasDistancia = riestra_distancia(:,evento);
+MuestrasDistancia = MuestrasDistancia(MuestrasDistancia~= 0);
+
 tEvento = (0:length(MuestrasLOSEvento)-1)*resolucion; % Esto es lo que dura el evento que analizamos
 
-fs = 2.3e6; % Tasa de muestreo ====================================
+fs = 2.1E6; % Tasa de muestreo ====================================     CAMBIAR ESTO AL SCRIPT DONDE VAYAS A CORRER
 Ts = 1/fs;
-Tsim = 100;
-tInterp= (0:Ts:Tsim); % Tiempo a evaluar (con la resolución que se requiera, esto lo fijamos nosotros)
+Tin = 25;
+Tsim = 70;
+tInterp= (Tin:Ts:Tsim); % Tiempo a evaluar (con la resolución que se requiera, esto lo fijamos nosotros)
 N = length(tInterp); % Cantidad de muestras a procesar 
 
 
@@ -239,7 +228,7 @@ save('Señal_RO', 'datosSRO', '-v7.3','-nocompression');
 
 MuestrasLOSInterp = interp1(tEvento,MuestrasLOSEvento, tInterp, 'spline'); % LOS para esa resolución
 MuestrasDopplerInterp = interp1(tEvento,MuestrasDopplerEvento,tInterp,'spline'); % Doppler para esa resolución 
-
+MuestrasDistancia = interp1(tEvento,MuestrasDistancia,tInterp,'spline'); % Distancia entre satelites para esa resolución 
 
 % Se tiene que interpolar tanto la amplitud como la fase de forma tal de
 % que sucedan para lo que marca tInterp
@@ -276,15 +265,17 @@ C = 3e8; % Velocidad de la luz
 fdata = 50; % Tasa de datos 
 Tdata = 1/fdata; %Periodo de bit de datos (20ms)
 
-taut = 0; % Este es el retardo que tenemos que modelar 
+taut = MuestrasDistancia(Tin/Ts)*1/c; % Retardo con distancia inicial para el timpo de inicio predeterminado
+taut = taut + cumtrapz(tInterp,(fD_GEOM)); % Modelo del retardo de la señal
 
 cs = cx(mod(floor((tInterp-taut)/Tchip),length(cx))+1); % Código
-ndata=0:TD/Tdata-1; % Indice de datos
+ndata=0:Tsim/Tdata-1; % Indice de datos
 data=sign(rand(1,length(ndata))-.5); % Datos generados de manera aleatoria
 cdata=data(mod(floor((tInterp-taut)/Tdata),length(data))+1);% Datos desplazados
 
-sRO = ampRO.*exp(1j*(2*pi*cumtrapz(tInterp,(fD_GEOM))+ phaseRO)); % Señal en banda base sin retardo
-
+sRO = cdata.*cs.*ampRO.*exp(1j*(2*pi*-1*taut*fL1+ phaseRO)); % Señal en banda base sin retardo
+% Recordar que la señal tiene que ser muestreada con fs maor a 2M por el
+% código
 A = 0.8 ; % Amplitud de la portadora para una altitud de 0 km de LOS 
 CN0_db = 45;
 CN0 = 10^(0.1*CN0_db);
@@ -299,7 +290,23 @@ nQ=sqrt(N0_var/2).*wQ; %Ruido en quadratura
 ruido=nI+1i*nQ; %Ruido "Recibido"
 
 sROGNSS = sRO + ruido;
-saveVector(sROGNSS, 1e6, SigRoGnss);
+saveVector(sROGNSS, 50e6, 'SigRoGnss');
+
+
+% Guardar simulación
+etiqueta = sprintf('Frecuencia de muestreo: %d Hz\nNúmero de muestras: %d \n CN0 [dB] = %d', fs, N,CN0_db);
+datosSRO.etiqueta = etiqueta; 
+datosSRO.doppler = fD_GEOM; 
+datosSRO.amplitud = ampRO;
+datosSRO.fase = phaseRO;
+
+if MuestrasLOSInterp(1) < 0
+    datosSRO.evento = 1; % Creciente (se invierte)
+
+else 
+    datosSRO.evento = 0; % Decreciente (no se invierte)
+end
+save('Señal_RO', 'datosSRO', '-v7.3','-nocompression');
 %% Graficos de interpolación y ajuste
 close all
 figure;

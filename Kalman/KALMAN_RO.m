@@ -83,13 +83,13 @@ rzt = 0;
 for i=0:INT_NC-1
     fe = feini;
     for k = 1:K
-        zp = z(i*M+1:(i+1)*M).*exp(-1j*(2*pi*fe*n*Ts)); % Quiero correlacionar con una replica
+        zp = 1/sqrt(M)*z(i*M+1:(i+1)*M).*exp(-1j*(2*pi*fe*n*Ts)); % Quiero correlacionar con una replica
         % de código local y las señal que llegó
         zpf = fft(zp);
         rzs(k,:) = ifft(conj(cf).*zpf); % Función de intercorrelación
         fe = fe + df;
     end
-    rzt = rzt + abs(rzs).^2;
+    rzt = rzt + 1/INT_NC*abs(rzs).^2;
 end
 
 rzs=rzt;
