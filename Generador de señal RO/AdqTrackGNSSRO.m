@@ -9,20 +9,19 @@ cargardatos = 1;
 if cargardatos == 1
     sRO = load("Señal_RO.mat"); % Traemos los datos
     disp(sRO.datosSRO.etiqueta) % Mostramos la metadata correpondiente
-    SigRoMuestras = readVector('SigRoGnss');
+    % SigRoMuestras = readVector('SigRoGnss');
 end
-
+SigRoMuestras = sRO.datosSRO.muestras;
 sROdoppler = sRO.datosSRO.doppler;
 sROamp = sRO.datosSRO.amplitud;
 sROfase = sRO.datosSRO.fase;
 
-fs = 2.1E6; 
+fs = 2056000; 
 Ts = 1/fs;
 Tin = 25;
 Tsim = 70;
 tInterp= (Tin:Ts:Tsim); % Tiempo a evaluar (con la resolución que se requiera, esto lo fijamos nosotros)
-N = length(tInterp); % Cantidad de muestras a procesar 
-SV = 1; % Adquisición del satélite 
+SV = 3; % Adquisición del satélite 
 cx = cacode (SV); % Adquiero un período de 1023 chips para el satélite elegido
 fL1 = 1575.42e6; % Frecuencia nominal GPS
 fOL = 1575.42e6; % Frecuencia de oscilador local (no es necesariamente la misma)
@@ -30,22 +29,69 @@ fFI = fL1-fOL; % Frecuencia intermedia
 Tchip = 1/(1023e3); % Tiempo de chip nominal 
 C = 3e8; % Velocidad de la luz
 lambda = C/fL1; % Longitud de onda nominal 
-CN0_dB = 45; 
+CN0_dB = 90; 
 %% Etapa de Adquisición
 
 Tadq = 1e-3; % Tiempo de integración de adquisición
-F_rango = 90e3; % Rango de frecuencias a recorrer
-df = 50; % Este paso en frecuencia tiene que ver con el error máximo que toleramos en el Kalman
-fFI = 0; % Está en 0 porque suponemos que llega en banda base
-INT_NC = 5; % Integraciones no coherentes
+F_rango = 80e3; % Rango de frecuencias a recorrer
+df = 100; % Este paso en frecuencia tiene que ver con el error máximo que toleramos en el Kalman
+INT_NC = 3; % Integraciones no coherentes
 fig_adq =1; % Habilitar figuras
 
-[retardo, Doppler] = Adquisition(SigRoMuestras,fs,Tadq,df,F_rango,SV,fFI,INT_NC,fig_adq);
+% Adquisition(sRO.datosSRO.muestras,fs,Tadq,F_rango,SV,fFI,fig_adq)
+
+z = sRO.datosSRO.muestras;
+Fs = fs;
+Ti = Tadq;
+
+
+Tchip = 1/(1023e3); % Tiempo de chip nominal 
+Ts = 1/Fs;
+n = 0:Ti*Fs-1;
+paso_Doppler = 0.1*1/Ti;
+frecuencias_Doppler = fFI -F_rango/2:paso_Doppler:F_rango/2; % Rango de frecuencias a buscar 
+retardos = 0:1/Fs:1e-3-1/Fs; % Un perídodo
+
+N = length(n); % Cantidad de bins en la dimensión del retardo
+M = length(frecuencias_Doppler); % Cantidad de bins en la dimensión de frecuencia
+K = round(10/Ti); % Cantidad de integraciones coherentes a realizar
+
+c = cacode(SV);
+c = c((mod(floor(n*Ts/Tchip),1023)+1));    
+C = conj(fft(c));
+Y1=0;
+
+for kk = 1:K
+
+    zq = z(1+kk*N:(kk+1)*N);
+    ind_f = 1;
+    for ff = frecuencias_Doppler
+
+        y = zq.*exp(-1j*2*pi*ff*n*Ts);
+        Y = fft(y);
+        r(ind_f,:) = ifft(Y.*C);
+
+        ind_f = 1+ ind_f;
+    
+    end
+
+    Y1 = Y1 + abs(r).^2/length(r);
+    kk*100/K
+end
+
+
+
+if fig_adq
+surf(retardos,frecuencias_Doppler,Y1); shading interp
+end
 
 %% Etapa de Seguimiento 
 
-CN0 = 10^(.1*45);
-TranBit = 1e-3; % corrimiento dentro del slot para no tomar un bit de datos a la mitad
+Doppler = sROdoppler(1)*(1-0.00009);
+retardo = 964;
+
+CN0 = 10^(.1*CN0_dB);
+TranBit = 5e-3; % corrimiento dentro del slot para no tomar un bit de datos a la mitad
 N = length(SigRoMuestras); % Cantidad de muestras (estos 4 se leen del display)
 tSIM = (0:N)*Ts; % Tiempo de simulación
 Ti = 5e-3; % Tiempo de integración
@@ -70,7 +116,7 @@ Q = 0.001*Q;
 
 % Inicializamos Kalman y lazo de código.
 f0 = Doppler;
-taux = retardo;
+taux = retardo + f0/1540*TranBit;
 
 % Parámetros del filtro de lazo
 BW_code = 4; % Ancho de banda del filtro en [Hz]
@@ -89,7 +135,7 @@ x(:,1)= x0;
 
 CN0 = sROamp(1:M:length(sROamp)).^2/2/N0; % Definida y tomada como conocida
 
-c = cx(mod(floor((nt*Ts-tau*Tchip)/Tchip),length(cx))+1); %Réplica de código inicial
+c = cx(mod(floor((nt*Ts-taux*Tchip)/Tchip),length(cx))+1); %Réplica de código inicial
 s = exp(1j*(2*pi*f0*nt*Ts)); %Réplica de portadora inicial
 
 
@@ -105,8 +151,8 @@ for k=0:(MS-2)
     L=sum(conj(sL).*zseg); %Correlación late
 
                                 % Discriminadores
-    Ip=real(P);
-    Qp=imag(P);
+    Ip = real(P);
+    Qp = imag(P);
     %Discriminador de fase
     D_fase = atan(Qp/Ip);
     %Discriminador de código
@@ -127,8 +173,6 @@ for k=0:(MS-2)
 
     Px_post(:,:,k+2) = Px_prior(:,:,k+2) - K*H*Px_prior(:,:,k+2); % Cálculo de innovaciones
 
-    %Estimación del retardo
-    taux= taux - K0*D_tau + est_x_posterior(2)*Ti/1540/2/pi + est_x_posterior(3)*Ti^2/2/1540/2/pi; 
 
     % Vectores
     x(:,k+2) = est_x_posterior;
@@ -138,6 +182,9 @@ for k=0:(MS-2)
     Lp(:,k+1)=L;
     
     xout = F*est_x_posterior; % Propagamos una vez mas
+    %Estimación del retardo
+    taux= taux - K0*D_tau + xout(2)*Ti/1540/2/pi + xout(3)*Ti^2/2/1540/2/pi; 
+    
     % Generamos réplica local para volver a entrar a los discriminadores 
     s = exp(1j*(2*pi*(fFI+xout(2)/2/pi)*Ts*nt + xout(1))); % Ajuste de réplica de portadora
     c = cx(mod(floor((nt*Ts-taux*Tchip)/Tchip),1023)+1); % Ajuste de réplica de código
@@ -160,7 +207,8 @@ legend('Salida del discriminador de fase')
 subplot(3,1,2)
 hold on
 plot((0:length(x(1,:))-1)*Ti,x(2,:)/2/pi,'LineWidth',1) % Doppler
-legend('Estimación de Doppler')
+plot((0:length(sROdoppler)-1)*Ts,sROdoppler)
+legend('Estimación de Doppler','Doppler real')
 subplot(3,1,3)
 plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
 legend('Doppler rate')

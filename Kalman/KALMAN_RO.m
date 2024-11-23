@@ -9,10 +9,10 @@
 %             =================================================
 %% Carga de datos 
 
-NUMERO_DE_SATELITE = 1; % Adquisición del satélite 
+NUMERO_DE_SATELITE = 3; % Adquisición del satélite 
 cx = cacode (NUMERO_DE_SATELITE); % Adquiero un período de 1023 chips para el satélite elegido
 fL1 = 1575.42e6; % Frecuencia nominal GPS
-fOL = 1575e6; % Frecuencia de oscilador local (no es necesariamente la misma)
+fOL = 1575.42e6; % Frecuencia de oscilador local (no es necesariamente la misma)
 fFI = fL1-fOL; % Frecuencia intermedia
 Tchip = 1/(1023e3); % Tiempo de chip nominal 
 C = 3e8; % Velocidad de la luz
@@ -48,7 +48,7 @@ cdata=data(mod(floor((n*Ts-taut)/Tdata),length(data))+1);% Datos desplazados
 s1 = cdata.*cs.*exp(1j*(2*pi*(fL1)*(Ts*n-taut))); % Señal modulada a fL1
 s2 = s1.*exp(-1j*(2*pi*fOL*Ts*n)); % Demodulación a frecuencia intermedia
 %Generación de ruido para mejorar el modelo 
-CN0db = 40; % Relacion señal a ruido en DB
+CN0db = 65; % Relacion señal a ruido en DB
 CN0 = 10^(.1*CN0db);
 N = 1/(Ts*CN0);
 % El ruido se genera a partir de una distribución complex normal
@@ -58,6 +58,9 @@ nI=sqrt(N/2).*wI; %Ruido en fase
 nQ=sqrt(N/2).*wQ; %Ruido en quadratura
 ruido=nI+1i*nQ; %Ruido "Recibido"
 z = s2+ruido; % Modelo de señal + ruido 
+
+
+% [retardo, Doppler] = Adquisition(z,5.3e6,1e-3,1,5000,3,0,3,1);
 
 %% Etapa de ADQUISICIÓN
 

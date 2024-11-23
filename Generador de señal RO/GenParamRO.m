@@ -12,7 +12,7 @@ R = 6366000;     % Radio de la Tierra (m)
 % Simulación de orbitas
 
 data = yumaread("almanac.yuma.week0100.061440.txt");
-SVn=3; % Satélite a simular
+SVn = 3; % Satélite a simular
 datos_PRN1 = data(SVn,:);
 t = data.Time(1); % Tiempo asignado como inicial (estructura)
 Periodo=2*pi*sqrt((datos_PRN1.SQRTA^2)^3/(M*G)); % Periodo de la órbita del satélite
@@ -139,7 +139,7 @@ MuestrasDistancia = MuestrasDistancia(MuestrasDistancia~= 0);
 
 tEvento = (0:length(MuestrasLOSEvento)-1)*resolucion; % Esto es lo que dura el evento que analizamos
 
-fs = 2.1E6; % Tasa de muestreo ====================================     CAMBIAR ESTO AL SCRIPT DONDE VAYAS A CORRER
+fs = 2056000; % Tasa de muestreo ====================================     CAMBIAR ESTO AL SCRIPT DONDE VAYAS A CORRER
 Ts = 1/fs;
 Tin = 25;
 Tsim = 70;
@@ -228,7 +228,7 @@ save('Señal_RO', 'datosSRO', '-v7.3','-nocompression');
 
 MuestrasLOSInterp = interp1(tEvento,MuestrasLOSEvento, tInterp, 'spline'); % LOS para esa resolución
 MuestrasDopplerInterp = interp1(tEvento,MuestrasDopplerEvento,tInterp,'spline'); % Doppler para esa resolución 
-MuestrasDistancia = interp1(tEvento,MuestrasDistancia,tInterp,'spline'); % Distancia entre satelites para esa resolución 
+MuestrasDistanciaInterp = interp1(tEvento,MuestrasDistancia,tInterp,'spline'); % Distancia entre satelites para esa resolución 
 
 % Se tiene que interpolar tanto la amplitud como la fase de forma tal de
 % que sucedan para lo que marca tInterp
@@ -255,17 +255,17 @@ fD_GEOM = MuestrasDopplerInterp;
 
 % Datos de señal GNSS-GPS
 
-NUMERO_DE_SATELITE = 1; % Adquisición del satélite 
+NUMERO_DE_SATELITE = 3; % Adquisición del satélite 
 cx = cacode (NUMERO_DE_SATELITE); % Adquiero un período de 1023 chips para el satélite elegido
 fL1 = 1575.42e6; % Frecuencia nominal GPS
-fOL = 1575e6; % Frecuencia de oscilador local (no es necesariamente la misma)
+fOL = 1575.42e6; % Frecuencia de oscilador local (no es necesariamente la misma)
 fFI = fL1-fOL; % Frecuencia intermedia
 Tchip = 1/(1023e3); % Tiempo de chip nominal 
 C = 3e8; % Velocidad de la luz
 fdata = 50; % Tasa de datos 
 Tdata = 1/fdata; %Periodo de bit de datos (20ms)
 
-taut = MuestrasDistancia(Tin/Ts)*1/c; % Retardo con distancia inicial para el timpo de inicio predeterminado
+taut = MuestrasDistanciaInterp(floor(Tin/Ts))*1/C; % Retardo con distancia inicial para el timpo de inicio predeterminado
 taut = taut + cumtrapz(tInterp,(fD_GEOM)); % Modelo del retardo de la señal
 
 cs = cx(mod(floor((tInterp-taut)/Tchip),length(cx))+1); % Código
@@ -277,7 +277,7 @@ sRO = cdata.*cs.*ampRO.*exp(1j*(2*pi*-1*taut*fL1+ phaseRO)); % Señal en banda b
 % Recordar que la señal tiene que ser muestreada con fs maor a 2M por el
 % código
 A = 0.8 ; % Amplitud de la portadora para una altitud de 0 km de LOS 
-CN0_db = 45;
+CN0_db = 90; % ACORDARSE DE CAMBIAR EN EL OTRO SCRIPT
 CN0 = 10^(0.1*CN0_db);
 N0 = A^2/2/(CN0);
 N0_var = fs*N0;
@@ -290,19 +290,19 @@ nQ=sqrt(N0_var/2).*wQ; %Ruido en quadratura
 ruido=nI+1i*nQ; %Ruido "Recibido"
 
 sROGNSS = sRO + ruido;
-saveVector(sROGNSS, 50e6, 'SigRoGnss');
+% saveVector(sROGNSS, 50e6, 'SigRoGnss');
 
 
 % Guardar simulación
 etiqueta = sprintf('Frecuencia de muestreo: %d Hz\nNúmero de muestras: %d \n CN0 [dB] = %d', fs, N,CN0_db);
-datosSRO.etiqueta = etiqueta; 
+datosSRO.etiqueta = etiqueta;
+datosSRO.muestras = sROGNSS; 
 datosSRO.doppler = fD_GEOM; 
 datosSRO.amplitud = ampRO;
 datosSRO.fase = phaseRO;
 
 if MuestrasLOSInterp(1) < 0
     datosSRO.evento = 1; % Creciente (se invierte)
-
 else 
     datosSRO.evento = 0; % Decreciente (no se invierte)
 end
