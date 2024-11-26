@@ -222,5 +222,5 @@ plot(tSIM(1:end-3),diff(diff(sROfase)./Ts)/Ts,'LineWidth',1.5)
 
 Doppler_Geo_int = interp1((0:length(sROdoppler)-1)*Ts,sROdoppler,(0:length(x(1,:))-1)*Ti,'spline');
 figure(2)
-plot((0:length(x(1,:))-1)*Ti,Doppler_Geo_int-x(2,:)/2/pi,'LineWidth',1)
+plot((0:length(x(1,:))-1)*Ti,medfilt1(Doppler_Geo_int-x(2,:)/2/pi,100),'LineWidth',1)
 title('Excess Doppler')

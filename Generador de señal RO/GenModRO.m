@@ -71,30 +71,33 @@ phase_atan = atan(imag(u_observed)./real(u_observed));
 % Gráficas de la señal
 figure;
 subplot(2, 1, 1);
-plot(z_values, amplitude_LEO/max(amplitude_LEO));
-xlabel('Altura (m)');
-ylabel('Amplitud');
-title('Amplitud de la señal RO en LEO');
-
+plot(z_values, amplitude_LEO/max(amplitude_LEO),'k','LineWidth',1.5);
+xlabel('$z_{obs}$','Interpreter','latex');
+ylabel('Amplitud u(y,z)','Interpreter','latex');
+title('Amplitud en LEO','Interpreter','latex');
+grid on
 subplot(2, 1, 2);
 hold on
-plot(z_values, phase_LEO);
-plot(z_values, phase_atan);
-xlabel('Altura (m)');
-ylabel('Fase (radianes)');
-title('Fase de la señal RO en LEO');
+plot(z_values, phase_LEO,'k','LineWidth',1.5);
+xlabel('$z_{obs}$','Interpreter','latex');
+ylabel('Fase u(y,z) (rad)','Interpreter','latex');
+title('Fase en LEO','Interpreter','latex');
+grid on
 
-
+%%
 % Cálculo de aceleración de fase
 delta_t = 1/50; % Lo tomamos del paper
 for i = 2:length(phase_LEO)-1
     diff_phase(i) = (phase_LEO(i+1)-2*phase_LEO(i)+phase_LEO(i-1))/(2*pi*delta_t^2);
 end
 figure;
-plot(z_values(2:end),diff_phase);
-title("Aceleración de fase")
-
-% Doppler 
+plot(z_values(2:end),diff_phase,'k','LineWidth',1.5);
+xlabel('$z_{obs}$','Interpreter','latex');
+ylabel('$d^2 \Phi/d^2t$','Interpreter','latex');
+title('Aceleraci\'' on de fase','Interpreter','latex');
+grid on
+box on
+%% Doppler 
 
 doppler = diff(phase_LEO);
 figure;

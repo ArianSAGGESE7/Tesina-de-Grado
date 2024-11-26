@@ -26,11 +26,11 @@ fig_adq =1;
 %% Generación de señal de GPS sintética 
 TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
-doppler = 35.4344;
+doppler = 35560;
 t_on = 1.3;
 t_off =2.4;
 amp_final =1.5;
-mode = 1; % 1 esc 2 amp other -
+mode = 0; % 1 esc 2 amp other -
 Amp_ini =1.5; % Amplitud por encima de donde arranca el doppler
 [doppler] = Gen_ramp_esc_doppler(doppler,TD,Ts,mode,t_on,t_off,amp_final,Amp_ini); % Generador de perfil de Doppler
 PEND = -doppler.*lambda*Ts; % Como cambia el Doppler muestra a muestra
@@ -48,7 +48,7 @@ cdata=data(mod(floor((n*Ts-taut)/Tdata),length(data))+1);% Datos desplazados
 s1 = cdata.*cs.*exp(1j*(2*pi*(fL1)*(Ts*n-taut))); % Señal modulada a fL1
 s2 = s1.*exp(-1j*(2*pi*fOL*Ts*n)); % Demodulación a frecuencia intermedia
 %Generación de ruido para mejorar el modelo 
-CN0db = 65; % Relacion señal a ruido en DB
+CN0db = 45; % Relacion señal a ruido en DB
 CN0 = 10^(.1*CN0db);
 N = 1/(Ts*CN0);
 % El ruido se genera a partir de una distribución complex normal
@@ -61,12 +61,12 @@ z = s2+ruido; % Modelo de señal + ruido
 
 
 % [retardo, Doppler] = Adquisition(z,5.3e6,1e-3,1,5000,3,0,3,1);
-
+% [retardo_find,frecuencia_find]= Adquisition(z,5.3e6,1e-3,80000,3,0,1,3)
 %% Etapa de ADQUISICIÓN
 
 Ti = 1e-3; % Tiempo de integración coherente
 M = floor(Ti/Ts); % Cantidad de muestras a procesar
-F = 10e3; % Frecuencias a recorrer
+F = 80e3; % Frecuencias a recorrer
 df = 0.05*(1/Ti); % Paso en frecuencias 
 f_central = fFI; % Aquí está el espectro a la hora de adquirir
 K = F/df ; % Cantidad de pasos en frecuencia 
@@ -122,14 +122,14 @@ if fig_adq
 
 end
 %% Identificamos el comienzo del bit de datos 
-frecuencia_find=420050;
+% 
+fx_fino=35500 ; %Declaro frecuencia
+taux_fino= 682.3217;
 
-fx_fino=frecuencia_find ; %Declaro frecuencia
-taux_fino=retardo_find;
 T = 10e-3; % Tiempo de integración
 M = floor(T/Ts); % Cantidad de muestras a procesar
 ntt=0:T/Ts-1; %Indice para ventana de integración de T segundos
-MSS=(TD/1e-3)-10; %Cantidad de correlaciones a hacer
+MSS=(length(z)*Ts/1e-3)-10; %Cantidad de correlaciones a hacer
 CDM=1e-3/Ts; %Cantidad de datos por milisegundo a una tasa de muestreo de fs, entran CMD datos.
 c=cx(mod(floor((ntt*Ts-taux_fino*Tchip)/Tchip),length(cx))+1);% Replicas de portadora y de código
 s=exp(1j*(2*pi*fx_fino*ntt*Ts)); % no cambia la frecuencia por lo que se actualiza una única vez.
@@ -179,12 +179,12 @@ qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 % qa = 1000; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 
 % Matriz de diseño para tracking (paper de mail)
-
+df = 0.05/1e-3;
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 
-Q= 0.5*Q;
+Q= .005*Q;
 
-CN0=  10000*100000;
+% CN0=  10000*100000;
 % Matriz paper RO after tracking
 
 % Q = 1e6*[(T*q0+T^3/3*qw + T^5/20*qa/c^2)  (T^2/2*qw + T^4/8*qa/c^2)  (T^3/6*qa/c^2);
@@ -210,11 +210,11 @@ x0 = [0;2*pi*(fdoppler);0]; % Inicialización de los estados con lo que obtuvimo
 
 
 % Parámetros del filtro de lazo
-BW_code = 4; % Ancho de banda del filtro en [Hz]
+BW_code = 40; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
 
-MOM_TRAN = 2e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
+MOM_TRAN = 21e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
 fx=fx_fino; % Frecuencia (Estimación inicial)
 taux=taux_fino+(fx-fFI)/1540*MOM_TRAN; % Retardo (Estimación inicial)
 M = floor(Ti/Ts) ; % Lo que nos da una cantidad de muestras a procesar de 
@@ -253,8 +253,8 @@ for k=0:(MS-2)
     % Discriminadores
     Ip=real(P);
     Qp=imag(P);
-    % D_fase = atan2(Qp,Ip); %Discriminador de fase
-    D_fase = atan(Qp/Ip);
+    D_fase = atan2(Qp,Ip); %Discriminador de fase
+    % D_fase = atan(Qp/Ip);
     D_tau=.5*(abs(E)-abs(L))/(abs(E)+abs(L)); %Discriminador de código
     
 
@@ -291,8 +291,7 @@ for k=0:(MS-2)
 end
 
 
-%% Gráficos
-
+close all
 hold on
 
 figure(1)
