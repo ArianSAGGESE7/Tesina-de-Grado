@@ -3,7 +3,6 @@
 %==========================================================================
                         clc;clear all;close all;
 
-
 %             =================================================
 %             Primera prueba con señal sintética normal de GPS
 %             =================================================
@@ -16,8 +15,8 @@ fOL = 1575.42e6; % Frecuencia de oscilador local (no es necesariamente la misma)
 fFI = fL1-fOL; % Frecuencia intermedia
 Tchip = 1/(1023e3); % Tiempo de chip nominal 
 C = 3e8; % Velocidad de la luz
-lambda = C/fL1; % Longitud de onda nominal 
-fs = 5.3e6; % Frecuencia de muesteo predefinida
+lambda = C/fL1; % Longitud donda nominal 
+fs = 5.3e6; % Freceuencia de muesteo predefinida
 Ts = 1/fs; % Tiempo de muestreo 
 fdata = 50; % Tasa de datos 
 Tdata = 1/fdata; %Periodo de bit de datos (20ms)
@@ -26,17 +25,18 @@ fig_adq =1;
 %% Generación de señal de GPS sintética 
 TD = 3; % Duración de datos (seg)
 n = 0:TD/Ts-1; % Indice de largo simulación
-doppler = 35560;
+doppler = 350.50121;
 t_on = 1.3;
 t_off =2.4;
-amp_final =1.5;
-mode = 0; % 1 esc 2 amp other -
-Amp_ini =1.5; % Amplitud por encima de donde arranca el doppler
+amp_final =1.1;
+mode = 2; % 1 esc 2 amp other 0 nada
+Amp_ini =1.02; % Amplitud por encima de donde arranca el doppler
 [doppler] = Gen_ramp_esc_doppler(doppler,TD,Ts,mode,t_on,t_off,amp_final,Amp_ini); % Generador de perfil de Doppler
 PEND = -doppler.*lambda*Ts; % Como cambia el Doppler muestra a muestra
 % Suponemos que para el tiempo de señal que queremos adquirir el receptor
 % se mantiene cuasi estático con respecto al movimiento del satélite GPS
-x = 20000e3 + (1:length(n)).*PEND; % Rango [en metros] con inicialización en 20 km
+% x = 20000e3 + (0:length(doppler)-1).*PEND; % Rango [en metros] con inicialización en 20 km
+x = 20000e3 + cumtrapz((0:length(doppler)-1),PEND);
 % El fenómeno Doppler se traduce como un retardo temporal en las señales de
 % banda base y portadora, por lo tanto existe un retardo asociado
 taut  =x/C; % Tiempo asociado al pseudorango
@@ -59,72 +59,72 @@ nQ=sqrt(N/2).*wQ; %Ruido en quadratura
 ruido=nI+1i*nQ; %Ruido "Recibido"
 z = s2+ruido; % Modelo de señal + ruido 
 
-
 % [retardo, Doppler] = Adquisition(z,5.3e6,1e-3,1,5000,3,0,3,1);
-% [retardo_find,frecuencia_find]= Adquisition(z,5.3e6,1e-3,80000,3,0,1,3)
+[retardo_find,frecuencia_find]= Adquisition(z,5.3e6,1e-3,10000,3,fFI,1,3)
+
 %% Etapa de ADQUISICIÓN
-
-Ti = 1e-3; % Tiempo de integración coherente
-M = floor(Ti/Ts); % Cantidad de muestras a procesar
-F = 80e3; % Frecuencias a recorrer
-df = 0.05*(1/Ti); % Paso en frecuencias 
-f_central = fFI; % Aquí está el espectro a la hora de adquirir
-K = F/df ; % Cantidad de pasos en frecuencia 
-feini  = f_central -F/2; % Frecuencia de inicio de la busqueda 
-n = 1:M; % Ventana de integración
-c=cx(mod(floor(n*Ts/Tchip),1023)+1); % Replica de código en banda base
-cf=fft(c); %fft de código en banda base
-
-INT_NC = 3; % Con esto indíco la cántidad de ventanas para la promediación
-% se debe asegurar que existan esa cantidad de muestras sino se deberá
-% correr desde más arriba una simulación más larga
-% Se repite que acá no se consideran cambios de bit 
-if(INT_NC*M<length(z))
-    disp("Se corrió correctamete con la INT NC seleccionada");
-end
-rzt = 0;
-for i=0:INT_NC-1
-    fe = feini;
-    for k = 1:K
-        zp = 1/sqrt(M)*z(i*M+1:(i+1)*M).*exp(-1j*(2*pi*fe*n*Ts)); % Quiero correlacionar con una replica
-        % de código local y las señal que llegó
-        zpf = fft(zp);
-        rzs(k,:) = ifft(conj(cf).*zpf); % Función de intercorrelación
-        fe = fe + df;
-    end
-    rzt = rzt + 1/INT_NC*abs(rzs).^2;
-end
-
-rzs=rzt;
-% Busqueda del máximo 
-[max_value, linear_index] = max(rzs(:));
-[row, col] = ind2sub(size(rzs), linear_index);
-
-a = (1:M)*Ts/Tchip;
-b=-(feini:df:fe-df)+fFI;
-if (b(row) == 0)
-
-    row = row+1;
-end
-
-retardo_find =a(col); % chips de retardo
-frecuencia_find = b(row) +fFI; % Frecuencia de pico máximo (no centrada en fFI)
-
-if fig_adq
-
-    figure
-    surf((1:M)*Ts/Tchip, -(feini:df:fe-1)+fFI,abs(rzs));
-    shading interp;
-    ylabel('$f-f_0$','Interpreter','latex');
-    xlabel('$\tau [chips]$','Interpreter','latex');
-    zlabel('$|r_{s\widetilde{s}}|$','Interpreter','latex');
-    title('Plano Retardo Doppler','Fontsize',14,'Interpreter','Latex');
-
-end
+% 
+% Ti = 1e-3; % Tiempo de integración coherente
+% M = floor(Ti/Ts); % Cantidad de muestras a procesar
+% F = 10e3; % Frecuencias a recorrer
+% df = 0.1*(1/Ti); % Paso en frecuencias 
+% f_central = fFI; % Aquí está el espectro a la hora de adquirir
+% K = F/df ; % Cantidad de pasos en frecuencia 
+% feini  = f_central -F/2; % Frecuencia de inicio de la busqueda 
+% n = 1:M; % Ventana de integración
+% c=cx(mod(floor(n*Ts/Tchip),1023)+1); % Replica de código en banda base
+% cf=fft(c); %fft de código en banda base
+% 
+% INT_NC = 3; % Con esto indíco la cántidad de ventanas para la promediación
+% % se debe asegurar que existan esa cantidad de muestras sino se deberá
+% % correr desde más arriba una simulación más larga
+% % Se repite que acá no se consideran cambios de bit 
+% if(INT_NC*M<length(z))
+%     disp("Se corrió correctamete con la INT NC seleccionada");
+% end
+% rzt = 0;
+% for i=0:INT_NC-1
+%     fe = feini;
+%     for k = 1:K
+%         zp = 1/sqrt(M)*z(i*M+1:(i+1)*M).*exp(-1j*(2*pi*fe*n*Ts)); % Quiero correlacionar con una replica
+%         % de código local y las señal que llegó
+%         zpf = fft(zp);
+%         rzs(k,:) = ifft(conj(cf).*zpf); % Función de intercorrelación
+%         fe = fe + df;
+%     end
+%     rzt = rzt + 1/INT_NC*abs(rzs).^2;
+% end
+% 
+% rzs=rzt;
+% % Busqueda del máximo 
+% [max_value, linear_index] = max(rzs(:));
+% [row, col] = ind2sub(size(rzs), linear_index);
+% 
+% a = (1:M)*Ts/Tchip;
+% b=-(feini:df:fe-df)+fFI;
+% if (b(row) == 0)
+% 
+%     row = row+1;
+% end
+% 
+% retardo_find =a(col); % chips de retardo
+% frecuencia_find = b(row) +fFI; % Frecuencia de pico máximo (no centrada en fFI)
+% 
+% if fig_adq
+% 
+%     figure
+%     surf((1:M)*Ts/Tchip, -(feini:df:fe-1)+fFI,abs(rzs));
+%     shading interp;
+%     ylabel('$f-f_0$','Interpreter','latex');
+%     xlabel('$\tau [chips]$','Interpreter','latex');
+%     zlabel('$|r_{s\widetilde{s}}|$','Interpreter','latex');
+%     title('Plano Retardo Doppler','Fontsize',14,'Interpreter','Latex');
+% 
+% end
 %% Identificamos el comienzo del bit de datos 
 % 
-fx_fino=35500 ; %Declaro frecuencia
-taux_fino= 682.3217;
+fx_fino = 350; %Declaro frecuencia
+taux_fino= retardo_find;
 
 T = 10e-3; % Tiempo de integración
 M = floor(T/Ts); % Cantidad de muestras a procesar
@@ -140,12 +140,17 @@ delta_T_code=1023*1540*delta_T_frec;
 for k=0:MSS-1
  zvd=z(CDM*k+1:CDM*(k+10)); %Selección de slot
  P_VD(k+1)=abs(sum(conj(c.*s).*zvd)); %Correlación
- c=cx(mod(floor((ntt*Ts-taux_fino*Tchip-(k)*delta_T_code)/Tchip),length(cx))+1); %Réplica de código
+ c=cx(mod(floor((ntt*Ts-taux_fino*Tchip)/Tchip),length(cx))+1); %Réplica de código
 end
 
 PROMPE=0.5*sum(P_VD)/length(P_VD);
+figure(2)
 
-plot(1:length(P_VD),P_VD); %con este gráfico podemos identificar a
+plot((1:length(P_VD))*1e-3,P_VD,'Marker','.','LineStyle','-'); %con este gráfico podemos identificar a
+title('Degradaci\''on por corrimiento del retardo','Interpreter','latex')
+xlabel('tiempo [s]','Interpreter','latex')
+grid on
+box on
 % partir de cuando se puede empezar con los lazos y el filtrado para no
 % incurrir en un cambio de signo por parte de los bit de datos
 %% Etapa de inicialización del Filtro y Loop 
@@ -182,9 +187,9 @@ qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 df = 0.05/1e-3;
 Q = qa*[T^5/20 T^4/8 T^3/6; T^4/8 T^3/3 T^2/2; T^3/6 T^2/2 T] + qw*[T^3/3 T^2/2 0; T^2/2 T 0; 0 0 0] + q0*[T 0 0; 0 0 0; 0 0 0];
 
-Q= .005*Q;
-
-% CN0=  10000*100000;
+% Q= 0.5*Q;
+Q = 30*Q;
+CN0=  10^(0.1*45);
 % Matriz paper RO after tracking
 
 % Q = 1e6*[(T*q0+T^3/3*qw + T^5/20*qa/c^2)  (T^2/2*qw + T^4/8*qa/c^2)  (T^3/6*qa/c^2);
@@ -210,11 +215,11 @@ x0 = [0;2*pi*(fdoppler);0]; % Inicialización de los estados con lo que obtuvimo
 
 
 % Parámetros del filtro de lazo
-BW_code = 40; % Ancho de banda del filtro en [Hz]
+BW_code = 10; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
 
-MOM_TRAN = 21e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
+MOM_TRAN = 1e-3; % Esta variable define el tiempo a a partir del cual puedo integrar
 fx=fx_fino; % Frecuencia (Estimación inicial)
 taux=taux_fino+(fx-fFI)/1540*MOM_TRAN; % Retardo (Estimación inicial)
 M = floor(Ti/Ts) ; % Lo que nos da una cantidad de muestras a procesar de 
@@ -253,8 +258,8 @@ for k=0:(MS-2)
     % Discriminadores
     Ip=real(P);
     Qp=imag(P);
-    D_fase = atan2(Qp,Ip); %Discriminador de fase
-    % D_fase = atan(Qp/Ip);
+    % D_fase = atan2(Qp,Ip); %Discriminador de fase
+    D_fase = atan(Qp/Ip);
     D_tau=.5*(abs(E)-abs(L))/(abs(E)+abs(L)); %Discriminador de código
     
 
@@ -290,7 +295,6 @@ for k=0:(MS-2)
     % Continuamos en el lazo
 end
 
-
 close all
 hold on
 
@@ -299,26 +303,42 @@ title('Estados a la salida del filtro','Interpreter','latex')
 
 subplot(3,1,1)
 hold on
-plot((1:length(Pp))*Ti,atan(imag(Pp)./real(Pp)),'LineWidth',1) % Error de fase
-legend('Salida del discriminador de fase')
+box on
+grid on
+plot((1:length(Pp))*Ti,atan(imag(Pp)./real(Pp)),'LineWidth',1.5) % Error de fase
+legend('Discriminador de fase','Interpreter','latex')
+ylabel('$\Delta \theta$','Interpreter','latex')
 subplot(3,1,2)
 hold on
-plot((0:length(x(1,:))-1)*Ti,x(2,:)/2/pi,'LineWidth',1) % Doppler
-plot((1:length(doppler))*Ts,doppler)
-% xlim([0 0.5])
-legend('Estimación de Doppler')
+box on
+grid on
+plot((1:length(doppler))*Ts,doppler,'Color',[0.9 0.4 0],'LineWidth',1.5);
+plot((0:length(x(1,:))-1)*Ti,x(2,:)/2/pi,'b','LineWidth',1.5) % Doppler
+% xlim([1 3])
+legend('Doppler estimado','Doppler real','Interpreter','latex')
+ylabel('$\hat{f}$','Interpreter','latex')
+hold on
+box on
+grid on
+lgd = legend({'Estimaci\''on Doppler', 'Doppler real'}, 'interpreter', 'latex');
 subplot(3,1,3)
-plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
-legend('Doppler rate')
-
+plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1.5) % Doppler-rate
+legend('Aceleraci\''on de fase','Interpreter','latex')
+ylabel('$\hat{\dot{f}}$','Interpreter','latex')
+hold on
+box on
+grid on
 
 figure(2) 
 hold on
-plot((0:length(Pp)-1)*Ti,abs(Pp),'linewidth',1); grid on;
-plot((0:length(Ep)-1)*Ti,abs(Ep),'linewidth',1);
-plot((0:length(Lp)-1)*Ti,abs(Lp),'linewidth',1); 
-legend('Prompt','early','late','Interpreter','latex')
-
+box on
+grid on
+plot((0:length(Pp)-1)*Ti,abs(Pp),'color',[0.3 0.7 0.7],'linewidth',1.5); grid on;
+plot((0:length(Ep)-1)*Ti,abs(Ep),'color',[0.3 0.3 1],'linewidth',1.5);
+plot((0:length(Lp)-1)*Ti,abs(Lp),'color',[0.3 0.6 0.8],'linewidth',1.5); 
+legend('Prompt','Early','Late','Interpreter','latex')
+title('Correladores','Interpreter','latex')
+xlabel('tiempo [s]','Interpreter','latex')
 
 % figure(5)
 % hold on

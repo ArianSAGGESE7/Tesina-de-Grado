@@ -44,11 +44,14 @@ end
 
 
 
-delay =retardos(col-1); % chips de retardo
-freq = -frecuencias_Doppler(row-1) ; % Frecuencia de pico máximo (no centrada en fFI)
+delay =retardos(col); % chips de retardo
+freq = -frecuencias_Doppler(row) ; % Frecuencia de pico máximo (no centrada en fFI)
 
 if fig_adq
 surf(retardos,-frecuencias_Doppler,Y1); shading interp
+title('Aquisici\''on','Interpreter','latex')
+xlabel('Chips','Interpreter','latex')
+ylabel('Bins de frecuencias (f-fI)','Interpreter','latex')
 end
 
 end

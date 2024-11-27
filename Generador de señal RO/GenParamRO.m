@@ -142,8 +142,8 @@ tEvento = (0:length(MuestrasLOSEvento)-1)*resolucion; % Esto es lo que dura el e
 % fs = 505001; % track tono
 fs = 2.1e6; % Tasa de muestreo ====================================     CAMBIAR ESTO AL SCRIPT DONDE VAYAS A CORRER
 Ts = 1/fs;
-Tin = 0;
-Tsim = 5;
+Tin = 25;
+Tsim = 60;
 tInterp= (Tin:Ts:Tsim); % Tiempo a evaluar (con la resolución que se requiera, esto lo fijamos nosotros)
 N = length(tInterp); % Cantidad de muestras a procesar 
 
@@ -281,8 +281,8 @@ data=sign(rand(1,length(ndata))-.5); % Datos generados de manera aleatoria
 cdata=data(mod(floor((tInterp-taut)/Tdata),length(data))+1);% Datos desplazados
 
 
-% sRO = cdata.*cs.*ampRO.*exp(1j*(2*pi*-taut*fL1+ phaseRO)); % Señal en banda base sin retardo
-sRO = cdata.*cs.*exp(1j*(2*pi*-1*taut*fL1)); % Señal GNSS pura en banda base
+sRO = cdata.*cs.*ampRO.*exp(1j*(2*pi*-taut*fL1+ phaseRO)); % Señal en banda base sin retardo
+% sRO = cdata.*cs.*exp(1j*(2*pi*-1*taut*fL1)); % Señal GNSS pura en banda base
 
 % Recordar que la señal tiene que ser muestreada con fs maor a 2M por el
 % código

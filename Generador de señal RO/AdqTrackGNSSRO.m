@@ -54,10 +54,17 @@ fdoppler=frec0-fFI;
 delta_T_frec=1/(fdoppler+fL1)-(1/fL1);% Ayuda del lazo de portadora al de código, si no lo tenemos perfemos% potencia
 delta_T_code=1023*1540*delta_T_frec;
  P_VD = zeros(1,MSS);
+% frec00 = frec0;
 for k=0:MSS-1
+    
  zvd=SigRoMuestras(CDM*k+1:CDM*(k+1)); %Selección de slot
  P_VD(k+1)=abs(sum(conj(c.*s).*zvd)); %Correlación
- c=cx(mod(floor((ntt*Ts-ret0*Tchip-k*delta_T_code)/Tchip),length(cx))+1); %Réplica de código
+ c=cx(mod(floor((ntt*Ts-ret0*Tchip)/Tchip),length(cx))+1); %Réplica de código
+ 
+ % frec00 = frec00 + (sROdoppler(end)-sROdoppler(1))/(length(SigRoMuestras)*Ts)*Tinte; % Propagamos con frec rate para no perder potencia 
+ s=exp(-1j*(2*pi*frec00*ntt*Ts)); % no cambia la frecuencia por lo que se actualiza una única vez.
+
+
 end
 
 plot((1:length(P_VD))*Tinte,P_VD);
@@ -66,8 +73,8 @@ plot((1:length(P_VD))*Tinte,P_VD);
 
 %% Etapa de Seguimiento 
 
-TranBit = 5E-3; % corrimiento dentro del slot para no tomar un bit de datos a la mitad
-Ti = 1e-3; % Tiempo de integración
+TranBit = 14E-3; % corrimiento dentro del slot para no tomar un bit de datos a la mitad
+Ti = 5e-3; % Tiempo de integración
 
 CN0 = 10^(.1*CN0db);
 N = length(SigRoMuestras); % Cantidad de muestras (estos 4 se leen del display)
@@ -95,11 +102,12 @@ Q = qa*[Ti^5/20 Ti^4/8 Ti^3/6; Ti^4/8 Ti^3/3 Ti^2/2; Ti^3/6 Ti^2/2 Ti] + qw*[Ti^
 Q = .5*Q;
 % Inicializamos Kalman y lazo de código.
 f0 = frec0;
+f0 =sROdoppler(1);
 
 taux = ret0 - f0/1540*TranBit; %==
 
 % Parámetros del filtro de lazo
-BW_code = 20; % Ancho de banda del filtro en [Hz]
+BW_code = 100; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
 % Inicialización de matrices
@@ -115,8 +123,8 @@ Lp = zeros(1,MS);
 Px_post(:,:,1) = P0;
 x(:,1)= x0;
 
-% CN0 = sROamp(1:M:length(sROamp)).^2/2/N0; % Definida y tomada como conocida
-CN0 = ones(1,MS)*10^(0.1*CN0db);
+CN0 = sROamp(1:M:length(sROamp)).^2/2/N0; % Definida y tomada como conocida
+% CN0 = ones(1,MS)*10^(0.1*CN0db);
 
 c = cx(mod(floor((nt*Ts-taux*Tchip)/Tchip),length(cx))+1); %Réplica de código inicial
 s = exp(-1j*(2*pi*f0*nt*Ts)); %Réplica de portadora inicial
@@ -166,7 +174,7 @@ for k=0:(MS-2)
     
     xout = F*est_x_posterior; % Propagamos una vez mas
     %Estimación del retardo
-    taux= taux - K0*D_tau + xout(2)*Ti/1540/2/pi + xout(3)*Ti^2/2/1540/2/pi; 
+    taux= taux - K0*D_tau - xout(2)*Ti/1540/2/pi - xout(3)*Ti^2/2/1540/2/pi; 
     
     % Generamos réplica local para volver a entrar a los discriminadores 
     s = exp(-1j*(2*pi*(fFI+xout(2)/2/pi)*Ts*nt + xout(1))); % Ajuste de réplica de portadora
@@ -177,7 +185,7 @@ end
 
 
 % Gráfico (Estados, dicriminadores y correladores)
-% close all
+close all
 hold on
 
 figure(1)
