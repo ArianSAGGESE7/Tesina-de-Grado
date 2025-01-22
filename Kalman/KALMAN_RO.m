@@ -1,7 +1,7 @@
 %==========================================================================
 % Implementación del Filtro de Kalman para mediciónes de RADIO OCULTACIÓN 
 %==========================================================================
-                        clc;clear all;close all;
+                        clc;clear variables;close all;
 
 %             =================================================
 %             Primera prueba con señal sintética normal de GPS

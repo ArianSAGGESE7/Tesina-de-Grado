@@ -54,6 +54,7 @@ figure(1)
 patternCustom(Gain_antenna_3dB,elevation,azimuth)
 figure(2)
 patternCustom(Gain_antenna,elevation,azimuth)
+%%
 % hacemos cortes para definir los ángulos de azimuth y elevacion
 figure(3);
 patternCustom(Gain_antenna_3dB,elevation,azimuth,CoordinateSystem="rectangular",Slice="phi",SliceValue=90)

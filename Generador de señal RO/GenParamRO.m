@@ -12,6 +12,7 @@ R = 6366000;     % Radio de la Tierra (m)
 % Simulación de orbitas
 
 
+
 data = yumaread("almanac.yuma.week0100.061440.txt");
 SVn = 1; % Satélite a simular
 datos_PRN1 = data(SVn,:);
@@ -125,7 +126,7 @@ end
 % distintos eventos que estan en la riestra y poder interpolarlos para
 % muestrearlos nuevamente. (tener en cuenta que las muestras estan 1 por lo que indica la variable 'resolución')
 
-evento = 10; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
+evento = 8; % Selecciono cuales de los eventos en donde la LOS cambia de signo (o sea hubo un evento).
 
 MuestrasLOSEvento = riestra_hminLOS(:,evento);
 MuestrasLOSEvento = MuestrasLOSEvento(MuestrasLOSEvento ~= 0); % Sacamos los ceros porque no todos los eventos duran lo mismo (y se rellena por default con cero)
@@ -139,11 +140,11 @@ MuestrasDistancia = riestra_distancia(:,evento);
 MuestrasDistancia = MuestrasDistancia(MuestrasDistancia~= 0);
 
 tEvento = (0:length(MuestrasLOSEvento)-1)*resolucion; % Esto es lo que dura el evento que analizamos
-% fs = 505001; % track tono
-fs = 2.1e6; % Tasa de muestreo ====================================     CAMBIAR ESTO AL SCRIPT DONDE VAYAS A CORRER
+fs = 105001; % track tono
+% fs = 2092000; % Tasa de muestreo ====================================     CAMBIAR ESTO AL SCRIPT DONDE VAYAS A CORRER
 Ts = 1/fs;
-Tin = 25;
-Tsim = 60;
+Tin = 0;
+Tsim = 85;
 tInterp= (Tin:Ts:Tsim); % Tiempo a evaluar (con la resolución que se requiera, esto lo fijamos nosotros)
 N = length(tInterp); % Cantidad de muestras a procesar 
 
@@ -215,7 +216,8 @@ datosSRO.etiqueta = etiqueta;
 datosSRO.doppler = fD_GEOM; 
 datosSRO.amplitud = ampRO;
 datosSRO.fase = phaseRO;
-
+datosSRO.fs = fs;
+datosSRO.CN0 = CN0_db;
 if MuestrasLOSInterp(1) < 0
     datosSRO.evento = 1; % Creciente (se invierte)
 
@@ -281,7 +283,7 @@ data=sign(rand(1,length(ndata))-.5); % Datos generados de manera aleatoria
 cdata=data(mod(floor((tInterp-taut)/Tdata),length(data))+1);% Datos desplazados
 
 
-sRO = cdata.*cs.*ampRO.*exp(1j*(2*pi*-taut*fL1+ phaseRO)); % Señal en banda base sin retardo
+sRO = cdata.*cs.*ampRO.*exp(1j*(2*pi*-taut*fL1+ phaseRO))/ampRO(1); % Señal en banda base sin retardo
 % sRO = cdata.*cs.*exp(1j*(2*pi*-1*taut*fL1)); % Señal GNSS pura en banda base
 
 % Recordar que la señal tiene que ser muestreada con fs maor a 2M por el
@@ -299,7 +301,7 @@ ruido=nI+1i*nQ; %Ruido "Recibido"
 sROGNSS = sRO + ruido;
 % saveVector(sROGNSS, 50e6, 'SigRoGnss');
 
-
+%%
 % Guardar simulación
 etiqueta = sprintf('Frecuencia de muestreo: %d Hz\nNúmero de muestras: %d \n CN0 [dB] = %d', fs, N,CN0db);
 datosSRO.etiqueta = etiqueta;

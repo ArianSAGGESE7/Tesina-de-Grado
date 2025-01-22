@@ -34,11 +34,10 @@ C = 3e8; % Velocidad de la luz
 %% Etapa de Adquisición
 
 Tadq = 1e-3; % Tiempo de integración de adquisición
-F_rango = 90e3; % Rango de frecuencias a recorrer
+F_rango = 70e3; % Rango de frecuencias a recorrer
 df = 0.05/Tadq; % Este paso en frecuencia tiene que ver con el error máximo que toleramos en el Kalman
-INT_NC = 3; % Integraciones no coherentes
 fig_adq =1; % Habilitar figuras
-K = 1; % Promediaciones
+K = 3; % Promediaciones
 
 [ret0,frec0] = Adquisition(SigRoMuestras,fs,Tadq,F_rango,SV,fFI,fig_adq,K)
 
@@ -62,7 +61,7 @@ for k=0:MSS-1
  c=cx(mod(floor((ntt*Ts-ret0*Tchip)/Tchip),length(cx))+1); %Réplica de código
  
  % frec00 = frec00 + (sROdoppler(end)-sROdoppler(1))/(length(SigRoMuestras)*Ts)*Tinte; % Propagamos con frec rate para no perder potencia 
- s=exp(-1j*(2*pi*frec00*ntt*Ts)); % no cambia la frecuencia por lo que se actualiza una única vez.
+ s=exp(-1j*(2*pi*frec0*ntt*Ts)); % no cambia la frecuencia por lo que se actualiza una única vez.
 
 
 end
@@ -73,8 +72,8 @@ plot((1:length(P_VD))*Tinte,P_VD);
 
 %% Etapa de Seguimiento 
 
-TranBit = 14E-3; % corrimiento dentro del slot para no tomar un bit de datos a la mitad
-Ti = 5e-3; % Tiempo de integración
+TranBit = 1e-3; % corrimiento dentro del slot para no tomar un bit de datos a la mitad
+Ti = 1e-3; % Tiempo de integración
 
 CN0 = 10^(.1*CN0db);
 N = length(SigRoMuestras); % Cantidad de muestras (estos 4 se leen del display)
@@ -97,21 +96,22 @@ q0 = h0/2;
 qw = 2*pi^2*h2;
 qa = 3e4; % Se obtiene de una tabla que se muestra en libro de Montenbruk;
 Q = qa*[Ti^5/20 Ti^4/8 Ti^3/6; Ti^4/8 Ti^3/3 Ti^2/2; Ti^3/6 Ti^2/2 Ti] + qw*[Ti^3/3 Ti^2/2 0; Ti^2/2 Ti 0; 0 0 0] + q0*[Ti 0 0; 0 0 0; 0 0 0];
-% Q = 0.001*Q;
 
-Q = .5*Q;
+
+Q = 0.5*Q;
+% Q= .01*Q;
 % Inicializamos Kalman y lazo de código.
 f0 = frec0;
-f0 =sROdoppler(1);
+% f0 =sROdoppler(1);
 
-taux = ret0 - f0/1540*TranBit; %==
+taux = ret0; 
 
 % Parámetros del filtro de lazo
-BW_code = 100; % Ancho de banda del filtro en [Hz]
+BW_code = 40; % Ancho de banda del filtro en [Hz]
 K0 = 4*BW_code*Ti; % Constante de lazo de código
 
 % Inicialización de matrices
-P0 = [(pi)^2/3 0 0; 0 (2*pi*df)^2/12 0 ; 0 0 100] ; % Matriz de covarianza del error (Hay que incializarla)
+P0 = [(pi)^2/3 0 0; 0 (2*pi*df)^2/12 0 ; 0 0 10] ; % Matriz de covarianza del error (Hay que incializarla)
 x0 = [0;2*pi*(f0); 0]; % Inicialización de los estados con lo que obtuvimos de la etapa de ADQ
 x = zeros(3,MS);
 Kk = zeros(3,1,MS);    
@@ -123,8 +123,7 @@ Lp = zeros(1,MS);
 Px_post(:,:,1) = P0;
 x(:,1)= x0;
 
-CN0 = sROamp(1:M:length(sROamp)).^2/2/N0; % Definida y tomada como conocida
-% CN0 = ones(1,MS)*10^(0.1*CN0db);
+CN0 = (sROamp(1:M:length(sROamp)).^2/2/N0); % Definida y tomada como conocida
 
 c = cx(mod(floor((nt*Ts-taux*Tchip)/Tchip),length(cx))+1); %Réplica de código inicial
 s = exp(-1j*(2*pi*f0*nt*Ts)); %Réplica de portadora inicial
@@ -132,8 +131,9 @@ s = exp(-1j*(2*pi*f0*nt*Ts)); %Réplica de portadora inicial
 
 for k=0:(MS-2)
 
-    zseg = SigRoMuestras(M*k + floor(TranBit/Ts) :M*(k+1) + floor(TranBit/Ts)-1); % Intervalo de muestras 
-    
+    zseg = SigRoMuestras(M*k + TranBit/Ts :M*(k+1) + TranBit/Ts-1); % Intervalo de muestras 
+
+
     % Correladores Prompt, Early y Late
     P = sum(conj(c.*s).*zseg); %Correlación prompt
     sE = s.*cx(mod(floor((nt*Ts-taux*Tchip+.5*Tchip)/Tchip),1023)+1); %Réplica early
@@ -153,16 +153,16 @@ for k=0:(MS-2)
 
     % Estimación por Kalman
     est_x_prior = F*x(:,k+1); % Propagación
-    Px_prior(:,:,k+1) = F*Px_post(:,:,k+1)*F.' + Q; % Estimación
+    Px_prior(:,:,k+2) = F*Px_post(:,:,k+1)*F.' + Q; % Estimación
 
     R = 1/(2*Ti*CN0(k+1));
   
-    K1= H*Px_prior(:,:,k+1)*H.' + R;
-    K = Px_prior(:,:,k+1)*H.'/(K1); % Ganancia de Kalman
+    K1= H*Px_prior(:,:,k+2)*H.' + R;
+    K = Px_prior(:,:,k+2)*H.'/(K1); % Ganancia de Kalman
 
     est_x_posterior = est_x_prior + K*(D_fase);
 
-    Px_post(:,:,k+2) = Px_prior(:,:,k+1) - K*H*Px_prior(:,:,k+1); % Cálculo de innovaciones
+    Px_post(:,:,k+2) = Px_prior(:,:,k+2) - K*H*Px_prior(:,:,k+2); % Cálculo de innovaciones
 
 
     % Vectores
@@ -174,43 +174,71 @@ for k=0:(MS-2)
     
     xout = F*est_x_posterior; % Propagamos una vez mas
     %Estimación del retardo
-    taux= taux - K0*D_tau - xout(2)*Ti/1540/2/pi - xout(3)*Ti^2/2/1540/2/pi; 
+    taux= taux - K0*D_tau + xout(2)*Ti/1540/2/pi + xout(3)*Ti^2/2/1540/2/pi; 
     
     % Generamos réplica local para volver a entrar a los discriminadores 
-    s = exp(-1j*(2*pi*(fFI+xout(2)/2/pi)*Ts*nt + xout(1))); % Ajuste de réplica de portadora
+    s = exp(-1j*(2*pi*(xout(2)/2/pi)*Ts*nt + xout(1))); % Ajuste de réplica de portadora
     c = cx(mod(floor((nt*Ts-taux*Tchip)/Tchip),1023)+1); % Ajuste de réplica de código
 
     % Continuamos en el lazo
 end
 
+% cambiar s  s = exp(-1j*(2*pi*(xout(2)/2/pi)*Ts*nt + xout(1))); CN0/10
+% Wbta =10
 
-% Gráfico (Estados, dicriminadores y correladores)
-close all
+%% Gráficos
+
 hold on
-
+close all
 figure(1)
-title('Estados a la salida del filtro','Interpreter','latex')
 subplot(3,1,1)
 hold on
-plot((1:length(Pp))*Ti,atan(imag(Pp)./real(Pp)),'LineWidth',1) % Error de fase
-legend('Salida del discriminador de fase')
+box on
+grid on
+grid minor
+plot((linspace(35,65,length(Pp))),atan(imag(Pp)./real(Pp)),'LineWidth',1.5) % Error de fase
+legend('Discriminador de fase','Interpreter','latex')
+ylabel('$\Delta \theta$ [rad]','Interpreter','latex')
 subplot(3,1,2)
 hold on
-plot((0:length(x(1,:))-1)*Ti,x(2,:)/2/pi,'LineWidth',1) % Doppler
-plot((0:length(sROdoppler)-1)*Ts,sROdoppler)
-legend('Estimación de Doppler','Doppler real')
+box on
+grid on
+grid minor
+plot((linspace(35,65,length(x(1,:)))),x(2,:)/2/pi,'Color',[0 0.4470 0.7410],'LineWidth',1.5) % Doppler
+plot((linspace(35,65,length(sROdoppler))),sROdoppler,'Color',[0.9 0.4 0],'LineWidth',2.5,'LineStyle','--');
+% xlim([1 3])
+legend('Doppler estimado','Doppler real','Interpreter','latex')
+ylabel('$\hat{f}$ [Hz]','Interpreter','latex')
 subplot(3,1,3)
-plot((0:length(x(1,:))-1)*Ti,x(3,:)/2/pi,'LineWidth',1) % Doppler-rate
-legend('Doppler rate')
+plot((linspace(35,65,length(x(3,:)))),x(3,:)/2/pi,'LineWidth',1.5) % Doppler-rate
+legend('Aceleraci\''on de fase','Interpreter','latex')
+ylabel('$\hat{\dot{f}} [Hz]$','Interpreter','latex')
+xlabel('tiempo [seg]','Interpreter','latex')
+hold on
+box on
+grid on
+grid minor
 
 figure(2) 
 hold on
-plot((1:length(Pp))*Ti,abs(Pp),'linewidth',1); grid on;
-plot((1:length(Pp))*Ti,abs(Ep),'linewidth',1);
-plot((1:length(Pp))*Ti,abs(Lp),'linewidth',1); 
-legend('Prompt','early','late','Interpreter','latex')
+box on
+grid on
+plot((0:length(Pp)-1)*Ti,abs(Pp),'color',[0.3 0.7 0.7],'linewidth',1.5); grid on;
+plot((0:length(Ep)-1)*Ti,abs(Ep),'color',[0.3 0.3 1],'linewidth',1.5);
+plot((0:length(Lp)-1)*Ti,abs(Lp),'color',[0.3 0.6 0.8],'linewidth',1.5); 
+legend('Prompt','Early','Late','Interpreter','latex')
+title('Correladores','Interpreter','latex')
+xlabel('tiempo [s]','Interpreter','latex')
 
-% figure(3)
-% Doppler_Geo_int = interp1((0:length(sROdoppler)-1)*Ts,sROdoppler,(0:length(x(1,:))-1)*Ti,'spline');
-% plot((0:length(x(1,:))-1)*Ti,medfilt1(Doppler_Geo_int-x(2,:)/2/pi,50),'LineWidth',1)
-% title('Excess Doppler')
+%% Excess Doppler
+
+% El Doppler Geométrico lo interpolamos asi son del mismo largo 
+Doppler_Geo_int = interp1((0:length(sROdoppler)-1)*Ts,sROdoppler,(0:length(x(1,:))-1)*Ti,'spline');
+figure(3)
+plot((0:length(x(1,:))-1)*Ti,medfilt1(Doppler_Geo_int-x(2,:)/2/pi,100),'LineWidth',1)
+title('Doppler en Exceso','Interpreter','latex')
+xlabel('tiempo [seg]','Interpreter','latex')
+ylabel('[Hz]','Interpreter','latex')
+grid on
+grid minor 
+box on 

@@ -2,7 +2,7 @@
 %% %%%%%%%%%% Script para correr los eventos desde el simulador %%%%%%%%%%%%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-clear all;close 
+clear variables;close 
 % Se agrega a la carpeta el path donde estan los .csv del simulador
 addpath("C:\Users\USUARIO\OneDrive - Alumnos Facultad de Ingeniería - UNLP\Tesina de Grado\GeneradorGPS\cmake-build-debug\")
 addpath("C:\Users\USUARIO\OneDrive - Alumnos Facultad de Ingeniería - UNLP\\BECA Senyt\Repositorio Git Senyt\code-senyt\");
@@ -40,11 +40,11 @@ for i=1:length(POS_GPS)
 
 end
 
-% for i = 1:length(POS_PRN)
-% 
-%     plot3(POS_PRN(i,1),POS_PRN(i,2),POS_PRN(i,3), '+', 'MarkerSize', 4, 'color', 'b','LineWidth',2)
-% 
-% end
+for i = 1:length(POS_PRN)
+
+    plot3(POS_PRN(i,1),POS_PRN(i,2),POS_PRN(i,3), '+', 'MarkerSize', 4, 'color', 'b','LineWidth',2)
+
+end
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EVENTOS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -198,7 +198,7 @@ end
 % tienen la menor altitud. 
 
 % Encuentro la altitud más chica en cada evento 
-tierra_color
+% tierra_color
 cnt = 1;
 [filas,columnas] = size(altitudes);
 for i = 1:columnas/2
@@ -218,7 +218,7 @@ for i = 1:columnas/2
     RO_events_GPS(:,cnt)  = sort_events_GPS(minIndex,:)';
     RO_events_USAT_vel(:,cnt) = sort_vel_LEO(minIndex,:)';
     hold on
-    plot3([RO_events_USAT(1,cnt) RO_events_GPS(1,cnt)],[ RO_events_USAT(2,cnt)  RO_events_GPS(2,cnt)],[ RO_events_USAT(3,cnt) RO_events_GPS(3,cnt)], '-', 'MarkerSize', 8, 'MarkerFaceColor', 'r','LineWidth',2)
+    % plot3([RO_events_USAT(1,cnt) RO_events_GPS(1,cnt)],[ RO_events_USAT(2,cnt)  RO_events_GPS(2,cnt)],[ RO_events_USAT(3,cnt) RO_events_GPS(3,cnt)], '-', 'MarkerSize', 8, 'MarkerFaceColor', 'r','LineWidth',2)
     cnt = cnt + 1;
 
 end
@@ -245,7 +245,7 @@ hold on
 
 % close all;
 
-tierra_color()
+% tierra_color()
 
 for i=1:length(RO_events_GPS)
 
